@@ -1,0 +1,102 @@
+中介者模式：（调停模式）
+    用一个中介者对象封装一系列的对象交互，中介者使各对象不需要显示地相互作用，从而使耦合松散，
+    而且可以独立地改变它们之间的交互。
+中介者使用场景：
+    当很多个同事类，之间彼此有复杂的关联呈现网状关系时，就可以使用中介者模式，将其转化成星状结构。
+示例：有两个类A和B，类中各有一个数字，并且要保证类B中的数字永远是类A中数字的100倍。也就是说，当修改类A的数时，
+将这个数字乘以100赋给类B，而修改类B时，要将数除以100赋给类A。类A类B互相影响，就称为同事类。
+    1.抽象中介者  定义好同事类对象到中介者对象的接口，用于各个同事类之间的通信。
+                 一般包括一个或几个抽象的事件方法，并由子类去实现
+     abstract class AbstractMediator {
+        protected AbstractColleague A;
+        protected AbstractColleague B;
+        public AbstractMediator(AbstractColleague a, AbstractColleague b) {
+            A = a;
+            B = b;
+        }
+        public abstract void AaffectB();
+        public abstract void BaffectA();
+    }
+    2.具体中介者  从抽象中介者继承而来，实现抽象中介者中定义的事件方法。
+                  从一个同事类接收消息，然后通过消息影响其他同时类。
+     class Mediator extends AbstractMediator {
+        public Mediator(AbstractColleague a, AbstractColleague b) {
+            super(a, b);
+        }
+        public void AaffectB() {   //处理A对B的影响
+            int number = A.getNumber();
+            B.setNumber(number*100);
+        }
+        public void BaffectA() {  //处理B对A的影响
+            int number = B.getNumber();
+            A.setNumber(number/100);
+        }
+    }
+    3.同事类  如果一个对象会影响其他的对象，同时也会被其他对象影响，那么这两个对象称为同事类。
+                在类图中，同事类只有一个，这其实是现实的省略，在实际应用中，同事类一般由多个组成，他们之间相互影响，
+                相互依赖。同事类越多，关系越复杂。并且，同事类也可以表现为继承了同一个抽象类的一组实现组成。
+                在中介者模式中，同事类之间必须通过中介者才能进行消息传递。
+       ——》抽象同事类，规定共有的方法
+     abstract class AbstractColleague {
+        protected int number;
+        public int getNumber() {
+            return number;
+        }
+        public void setNumber(int number){
+            this.number = number;
+        }
+        //注意这里的参数不再是同事类，而是一个中介者
+        public abstract void setNumber(int number, AbstractMediator am);
+    }
+       ——》同事类A
+     class ColleagueA extends AbstractColleague{
+        public void setNumber(int number, AbstractMediator am) {
+            this.number = number;
+            am.AaffectB();
+        }
+    }
+      ——》同事类B
+    class ColleagueB extends AbstractColleague{
+        @Override
+        public void setNumber(int number, AbstractMediator am) {
+            this.number = number;
+            am.BaffectA();
+        }
+    }
+    4.客户端调用
+        AbstractColleague collA = new ColleagueA();
+        AbstractColleague collB = new ColleagueB();
+        AbstractMediator am = new Mediator(collA, collB);
+
+        System.out.println("==========通过设置A影响B==========");
+        collA.setNumber(1000, am);
+        System.out.println("collA的number值为："+collA.getNumber());
+        System.out.println("collB的number值为A的10倍："+collB.getNumber());
+
+        System.out.println("==========通过设置B影响A==========");
+        collB.setNumber(1000, am);
+        System.out.println("collB的number值为："+collB.getNumber());
+        System.out.println("collA的number值为B的0.1倍："+collA.getNumber());
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

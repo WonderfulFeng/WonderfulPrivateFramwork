@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                xmlns:app="http://schemas.android.com/apk/res-auto"
+                xmlns:tools="http://schemas.android.com/tools"
+                android:id="@+id/rlRoot"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="#fff"
+                tools:context="com.example.administrator.myprivateframework.activity.MainActivity">
+
+    <com.example.administrator.myprivateframework.ui.WonderfulCameraPreview
+        android:id="@+id/surfaceView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+
+    <com.example.administrator.myprivateframework.ui.LineView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#00000000"/>
+
+    <com.example.administrator.myprivateframework.ui.VerticalTextView
+        android:id="@+id/tvMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:text="请将身份证置于取景框内"
+        android:textColor="#dd0000"
+        android:textSize="14sp"/>
+
+    <me.pqpo.smartcropperlib.view.CropImageView
+        android:id="@+id/ivCrop"
+        android:layout_width="match_parent"
+        android:layout_height="200dp"
+        android:padding="40dp"
+        android:visibility="visible"
+        app:civLineColor="@color/colorPrimary"
+        app:civMagnifierCrossColor="@color/colorPrimaryDark"/>
+
+    <ImageView
+        android:id="@+id/ivShow"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"/>
+</RelativeLayout>

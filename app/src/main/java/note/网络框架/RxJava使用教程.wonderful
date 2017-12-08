@@ -1,0 +1,2072 @@
+Rxjava: 精髓： 响应式拉取
+        compile 'io.reactivex.rxjava2:rxjava:2.0.1'
+        compile 'io.reactivex.rxjava2:rxandroid:2.0.1'
+    水管系列：上游 Observable(被观察者)  下游 Observer(观察者)  水管 subscribe(连接)
+1.基本使用
+        //创建一个上游 Observable：
+        Observable<Integer> observable = Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                emitter.onNext(1);
+                emitter.onNext(2);
+                emitter.onNext(3);
+                emitter.onComplete();
+            }
+        });
+        //创建一个下游 Observer
+        Observer<Integer> observer = new Observer<Integer>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+                Log.d(TAG, "subscribe");
+            }
+
+            @Override
+            public void onNext(Integer value) {
+                Log.d(TAG, "" + value);
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                Log.d(TAG, "error");
+            }
+
+            @Override
+            public void onComplete() {
+                Log.d(TAG, "complete");
+            }
+        };
+        //建立连接
+        observable.subscribe(observer);
+      注意: 只有当上游和下游建立连接之后, 上游才会开始发送事件. 也就是调用了subscribe() 方法之后才开始发送事件.
+      结果：subscribe --> 1 --> 2 --> 3 --> complete
+      链式写法：
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+             @Override
+             public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                 emitter.onNext(1);
+                 emitter.onNext(2);
+                 emitter.onNext(3);
+                 emitter.onComplete();
+             }
+         }).subscribe(new Observer<Integer>() {
+             @Override
+             public void onSubscribe(Disposable d) {
+                 Log.d(TAG, "subscribe");
+             }
+
+             @Override
+             public void onNext(Integer value) {
+                 Log.d(TAG, "" + value);
+             }
+
+             @Override
+             public void onError(Throwable e) {
+                 Log.d(TAG, "error");
+             }
+
+             @Override
+             public void onComplete() {
+                 Log.d(TAG, "complete");
+             }
+         });
+2.ObservableEmitter:事件发射器
+      发射种类：onNext(T value)，onComplete()和onError(Throwable error)
+      上游可以发送多个onNext()事件，下游可接收多个onNext()事件，上游可以发送多个onComplete 但下游处理完一个事件后就不再处理其他事件了
+      上游只能发送一个onError事件，发送多个会有异常。
+3.Disposable：断开连接 （闸门）
+       当调用了Disposable的dispose()方法后就会断开上下游之间的联系（闸门关闭），但是上游依然会发送未发送完的事件，只是下游不会再接收到
+       使用示例：依次发送 1,2,3,complete,4  当2 事件接收到后就断开连接
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                Log.d(TAG, "emit 1");
+                emitter.onNext(1);
+                Log.d(TAG, "emit 2");
+                emitter.onNext(2);
+                Log.d(TAG, "emit 3");
+                emitter.onNext(3);
+                Log.d(TAG, "emit complete");
+                emitter.onComplete();
+                Log.d(TAG, "emit 4");
+                emitter.onNext(4);
+            }
+        }).subscribe(new Observer<Integer>() {
+            private Disposable mDisposable;
+            private int i;
+
+            @Override
+            public void onSubscribe(Disposable d) {
+                Log.d(TAG, "subscribe");
+                mDisposable = d;
+            }
+
+            @Override
+            public void onNext(Integer value) {
+                Log.d(TAG, "onNext: " + value);
+                i++;
+                if (i == 2) {
+                    Log.d(TAG, "dispose");
+                    mDisposable.dispose();
+                    Log.d(TAG, "isDisposed : " + mDisposable.isDisposed());
+                }
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                Log.d(TAG, "error");
+            }
+
+            @Override
+            public void onComplete() {
+                Log.d(TAG, "complete");
+            }
+        });
+        结果：1，2 ，complete
+4.subscribe()的多个重载的方法:
+    public final Disposable subscribe() {}   //不带任何参数的subscribe() 表示下游不关心任何事件
+    public final Disposable subscribe(Consumer<? super T> onNext) {}
+          //带有一个Consumer参数的方法表示下游只关心onNext事件, 其他的事件我假装没看见, 因此我们如果只需要onNext事件可以这么写:
+          Observable.create(new ObservableOnSubscribe<Integer>() {
+                @Override
+                public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                    Log.d(TAG, "emit 1");
+                    emitter.onNext(1);
+                    Log.d(TAG, "emit 2");
+                    emitter.onNext(2);
+                    Log.d(TAG, "emit 3");
+                    emitter.onNext(3);
+                    Log.d(TAG, "emit complete");
+                    emitter.onComplete();
+                    Log.d(TAG, "emit 4");
+                    emitter.onNext(4);
+                }
+            }).subscribe(new Consumer<Integer>() {
+                @Override
+                public void accept(Integer integer) throws Exception {
+                    Log.d(TAG, "onNext: " + integer);
+                }
+            });
+    public final Disposable subscribe(Consumer<? super T> onNext, Consumer<? super Throwable> onError) {}
+    public final Disposable subscribe(Consumer<? super T> onNext, Consumer<? super Throwable> onError, Action onComplete) {}
+    public final Disposable subscribe(Consumer<? super T> onNext, Consumer<? super Throwable> onError, Action onComplete, Consumer<? super Disposable> onSubscribe) {}
+    public final void subscribe(Observer<? super T> observer) {}
+5.线程切换
+    正常情况下, 上游和下游是工作在同一个线程中的, 也就是说上游在哪个线程发事件, 下游就在哪个线程接收事件.
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        Observable<Integer> observable = Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                Log.d(TAG, "Observable thread is : " + Thread.currentThread().getName());
+                Log.d(TAG, "emit 1");
+                emitter.onNext(1);
+            }
+        });
+
+        Consumer<Integer> consumer = new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                Log.d(TAG, "Observer thread is :" + Thread.currentThread().getName());
+                Log.d(TAG, "onNext: " + integer);
+            }
+        };
+
+        observable.subscribeOn(Schedulers.newThread())//上游线程切换到一个新的线程
+                .observeOn(AndroidSchedulers.mainThread()) //下游线程切换到一个新的线程
+                .subscribe(consumer);
+    }
+
+    subscribeOn(): 指定的是上游发送事件的线程,多次指定仅第一次有效。
+
+    obserceOn():指定的是下游接收事件的线程，可以多次指定，每次指定每次切换
+
+    RxJava内置线程：
+        Schedulers.io() 代表io操作的线程, 通常用于网络,读写文件等io密集型的操作
+        Schedulers.computation() 代表CPU计算密集型的操作, 例如需要大量计算的操作
+        Schedulers.newThread() 代表一个常规的新线程
+        AndroidSchedulers.mainThread() 代表Android的主线程
+    网络请求：（简单实用Retrofit）
+        Android中有名的网络请求库就那么几个, Retrofit能够从中脱颖而出很大原因就是因为它支持RxJava的方式来调用。
+            compile 'com.squareup.retrofit2:retrofit:2.1.0'
+            compile 'com.squareup.retrofit2:converter-gson:2.1.0'
+            compile 'com.jakewharton.retrofit:retrofit2-rxjava2-adapter:1.0.0'
+            compile 'com.squareup.okhttp3:okhttp:3.4.1'
+            compile 'com.squareup.okhttp3:logging-interceptor:3.4.1'
+        定义API接口：
+            public interface Api {
+                @GET
+                Observable<LoginResponse> login(@Body LoginRequest request);
+                @GET
+                Observable<RegisterResponse> register(@Body RegisterRequest request);
+            }
+        接着创建一个Retrofit客户端:
+            private static Retrofit create() {
+                OkHttpClient.Builder builder = new OkHttpClient().newBuilder();
+                builder.readTimeout(10, TimeUnit.SECONDS);
+                builder.connectTimeout(9, TimeUnit.SECONDS);
+
+                if (BuildConfig.DEBUG) {
+                    HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
+                    interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
+                    builder.addInterceptor(interceptor);
+                }
+
+                return new Retrofit.Builder().baseUrl(ENDPOINT)
+                        .client(builder.build())
+                        .addConverterFactory(GsonConverterFactory.create())
+                        .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
+                        .build();
+            }
+        发起请求就很简单了:
+            Api api = retrofit.create(Api.class);
+            api.login(request)
+                .subscribeOn(Schedulers.io())               //在IO线程进行网络请求
+                .observeOn(AndroidSchedulers.mainThread())  //回到主线程去处理请求结果
+                .subscribe(new Observer<LoginResponse>() {
+                        @Override
+                    public void onSubscribe(Disposable d) {}
+
+                    @Override
+                    public void onNext(LoginResponse value) {}
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Toast.makeText(mContext, "登录失败", Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        Toast.makeText(mContext, "登录成功", Toast.LENGTH_SHORT).show();
+                    }
+                });
+        分析：看似很完美, 但我们忽略了一点, 如果在请求的过程中Activity已经退出了, 这个时候如果回到主线程去更新UI,
+             那么APP肯定就崩溃了, 怎么办呢, 上一节我们说到了Disposable , 说它是个开关, 调用它的dispose()方法时就会切断水管,
+             使得下游收不到事件, 既然收不到事件, 那么也就不会再去更新UI了.
+             因此我们可以在Activity中将这个Disposable 保存起来, 当Activity退出时, 切断它即可.
+
+             那如果有多个Disposable 该怎么办呢, RxJava中已经内置了一个容器CompositeDisposable,
+             每当我们得到一个Disposable时就调用CompositeDisposable.add()将它添加到容器中,
+             在退出的时候, 调用CompositeDisposable.clear() 即可切断所有的水管.
+
+    读写数据库：
+        public Observable<List<Record>> readAllRecords() {
+            return Observable.create(new ObservableOnSubscribe<List<Record>>() {
+                @Override
+                public void subscribe(ObservableEmitter<List<Record>> emitter) throws Exception {
+                    Cursor cursor = null;
+                    try {
+                        cursor = getReadableDatabase().rawQuery("select * from " + TABLE_NAME, new String[]{});
+                        List<Record> result = new ArrayList<>();
+                        while (cursor.moveToNext()) {
+                            result.add(Db.Record.read(cursor));
+                        }
+                        emitter.onNext(result);
+                        emitter.onComplete();
+                    } finally {
+                        if (cursor != null) {
+                            cursor.close();
+                        }
+                    }
+                }
+            }).subscribeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread());
+        }
+6.map操作符： 它的作用就是对上游发送的每一个事件应用一个函数, 使得每一个事件都按照指定的函数去变化。
+       通俗易懂：自己重写一个有返回值的方法，方法内部用到上游发送的参数，将返回值作为下游接收到的数据。
+           Observable.create(new ObservableOnSubscribe<Integer>() {
+               @Override
+               public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                   emitter.onNext(1);
+                   emitter.onNext(2);
+                   emitter.onNext(3);
+               }
+           }).map(new Function<Integer, String>() {
+               @Override
+               public String apply(Integer integer) throws Exception {
+                   return "This is result " + integer;//这里将上游发送的int类型数据整合成下游需要的String类型的数据
+               }
+           }).subscribe(new Consumer<String>() {
+               @Override
+               public void accept(String s) throws Exception {
+                   Log.d(TAG, s);
+               }
+           });
+7.FlatMap操作符：FlatMap将一个发送事件的上游Observable变换为多个发送事件的Observables，然后将它们发射的事件合并后放进一个单独的Observable里.
+       通俗得讲：将原本发事件的上游变成另一个发事件的上游。
+       注意：使用flatmap转换过后的上游在发送事件时，下游不一定是按原上游发送事件的顺序接收到数据。
+       Observable.create(new ObservableOnSubscribe<Integer>() {
+           @Override
+           public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+               emitter.onNext(1);
+               emitter.onNext(2);
+               emitter.onNext(3);
+           }
+       }).flatMap(new Function<Integer, ObservableSource<String>>() {
+           @Override
+           public ObservableSource<String> apply(Integer integer) throws Exception {
+               final List<String> list = new ArrayList<>();
+               for (int i = 0; i < 3; i++) {
+                   list.add("I am value " + integer);
+               }
+               //将原上游改变成一次发送list集合中的元素的新上游
+               return Observable.fromIterable(list).delay(10,TimeUnit.MILLISECONDS);
+           }
+       }).subscribe(new Consumer<String>() {
+           @Override
+           public void accept(String s) throws Exception {
+               Log.d(TAG, s);
+           }
+       });
+8.concatMap操作符： 它和flatMap的作用几乎一模一样, 只是它的结果是严格按照上游发送的顺序来发送的,
+       注册后自动登录的网络请求示例：
+       定义请求接口：
+           public interface Api {
+               @GET
+               Observable<LoginResponse> login(@Body LoginRequest request);
+
+               @GET
+               Observable<RegisterResponse> register(@Body RegisterRequest request);
+           }
+       平常的写法：
+         private void login() {
+                api.login(new LoginRequest())
+                        .subscribeOn(Schedulers.io())               //在IO线程进行网络请求
+                        .observeOn(AndroidSchedulers.mainThread())  //回到主线程去处理请求结果
+                        .subscribe(new Consumer<LoginResponse>() {
+                            @Override
+                            public void accept(LoginResponse loginResponse) throws Exception {
+                                Toast.makeText(MainActivity.this, "登录成功", Toast.LENGTH_SHORT).show();
+                            }
+                        }, new Consumer<Throwable>() {
+                            @Override
+                            public void accept(Throwable throwable) throws Exception {
+                                Toast.makeText(MainActivity.this, "登录失败", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+            }
+
+            private void register() {
+                api.register(new RegisterRequest())
+                        .subscribeOn(Schedulers.io())               //在IO线程进行网络请求
+                        .observeOn(AndroidSchedulers.mainThread())  //回到主线程去处理请求结果
+                        .subscribe(new Consumer<RegisterResponse>() {
+                            @Override
+                            public void accept(RegisterResponse registerResponse) throws Exception {
+                                Toast.makeText(MainActivity.this, "注册成功", Toast.LENGTH_SHORT).show();
+                                login();   //注册成功, 调用登录的方法
+                            }
+                        }, new Consumer<Throwable>() {
+                            @Override
+                            public void accept(Throwable throwable) throws Exception {
+                                Toast.makeText(MainActivity.this, "注册失败", Toast.LENGTH_SHORT).show();
+                            }
+                        });
+            }
+       可以看到登录和注册返回的都是一个上游Observable, 而我们的flatMap操作符的作用就是把一个Observable转换为另一个Observable, 因此:
+
+         api.register(new RegisterRequest())            //发起注册请求
+         .subscribeOn(Schedulers.io())               //在IO线程进行网络请求
+         .observeOn(AndroidSchedulers.mainThread())  //回到主线程去处理请求注册结果
+         .doOnNext(new Consumer<RegisterResponse>() {
+             @Override
+             public void accept(RegisterResponse registerResponse) throws Exception {
+                 //先根据注册的响应结果去做一些操作
+             }
+         })
+         .observeOn(Schedulers.io())                 //回到IO线程去发起登录请求
+         .flatMap(new Function<RegisterResponse, ObservableSource<LoginResponse>>() {
+             @Override
+             public ObservableSource<LoginResponse> apply(RegisterResponse registerResponse) throws Exception {
+                 return api.login(new LoginRequest());
+             }
+         })
+         .observeOn(AndroidSchedulers.mainThread())  //回到主线程去处理请求登录的结果
+         .subscribe(new Consumer<LoginResponse>() {
+             @Override
+             public void accept(LoginResponse loginResponse) throws Exception {
+                 Toast.makeText(MainActivity.this, "登录成功", Toast.LENGTH_SHORT).show();
+             }
+         }, new Consumer<Throwable>() {
+             @Override
+             public void accept(Throwable throwable) throws Exception {
+                 Toast.makeText(MainActivity.this, "登录失败", Toast.LENGTH_SHORT).show();
+             }
+         });
+9.zip操作符：Zip通过一个函数将多个Observable发送的事件结合到一起，然后发送这些组合到一起的事件. 它按照严格的顺序应用这个函数。
+   通俗的讲：重写一个方法接收两个上游和这两个上游发过来的数据，将他们整合成一个新的上游和一个新的类型数据，并发送给下游。
+   注意： 它只发射与发射数据项最少的那个Observable一样多的数据。当较少的上游数据都组合完毕，那么新上游将都不再发送事件，而如果原上游还有事件且未发送过complete事件，原上游将会继续发送。
+          两个上游当置于同一线程时，他们发送事件是有先后的，但是当在不同线程时就是同时发送的。
+
+   实际应用：一个界面需要展示用户的一些信息, 而这些信息分别要从两个服务器接口中获取, 而只有当两个都获取到了之后才能进行展示, 这个时候就可以用Zip了:
+    定义请求接口：
+         public interface Api {
+             @GET
+             Observable<UserBaseInfoResponse> getUserBaseInfo(@Body UserBaseInfoRequest request);
+             @GET
+             Observable<UserExtraInfoResponse> getUserExtraInfo(@Body UserExtraInfoRequest request);
+         }
+    用zip打包请求：
+        Observable<UserBaseInfoResponse> observable1 =
+                api.getUserBaseInfo(new UserBaseInfoRequest()).subscribeOn(Schedulers.io());
+
+        Observable<UserExtraInfoResponse> observable2 =
+                api.getUserExtraInfo(new UserExtraInfoRequest()).subscribeOn(Schedulers.io());
+
+        Observable.zip(observable1, observable2,
+                new BiFunction<UserBaseInfoResponse, UserExtraInfoResponse, UserInfo>() {
+                    @Override
+                    public UserInfo apply(UserBaseInfoResponse baseInfo,UserExtraInfoResponse extraInfo) throws Exception {
+                        return new UserInfo(baseInfo, extraInfo);
+                    }
+                }).observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<UserInfo>() {
+                    @Override
+                    public void accept(UserInfo userInfo) throws Exception {
+                        //do something;
+                    }
+                });
+10.Backpressure被压概念： 控制上游发送事件的速度
+    我们就那zip操作符来说，多个上游发送的事件组合起来发送给下游, 那大家有没有想过一个问题, 如果其中一个水管A发送事件特别快,
+    而另一个水管B 发送事件特别慢, 那就可能出现这种情况, 发得快的水管A 已经发送了1000个事件了, 而发的慢的水管B 才发一个出来,
+    组合了一个之后水管A 还剩999个事件, 这些事件需要继续等待水管B 发送事件出来组合, 那么这么多的事件是放在哪里的呢?
+    总有一个地方保存吧? 没错, Zip给我们的每一根水管都弄了一个水缸（队列（先进先出）） , 用来保存这些事件。
+    那么我们又有疑问了，那这个水缸能装多少？大小有限制吗？
+        Observable<Integer> observable1 = Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                for (int i = 0; ; i++) {   //无限循环发事件
+                    emitter.onNext(i);
+                }
+            }
+        }).subscribeOn(Schedulers.io());
+
+        Observable<String> observable2 = Observable.create(new ObservableOnSubscribe<String>() {
+            @Override
+            public void subscribe(ObservableEmitter<String> emitter) throws Exception {
+                emitter.onNext("A");
+            }
+        }).subscribeOn(Schedulers.io());
+
+        Observable.zip(observable1, observable2, new BiFunction<Integer, String, String>() {
+            @Override
+            public String apply(Integer integer, String s) throws Exception {
+                return integer + s;
+            }
+        }).observeOn(AndroidSchedulers.mainThread()).subscribe(new Consumer<String>() {
+            @Override
+            public void accept(String s) throws Exception {
+                Log.d(TAG, s);
+            }
+        }, new Consumer<Throwable>() {
+            @Override
+            public void accept(Throwable throwable) throws Exception {
+                Log.w(TAG, throwable);
+            }
+        });
+    结果：这里我们一直往水缸中存事件，结果内存很快就爆掉了（OOM）
+    分析：毕竟水缸的储存能力是有限的，为了解决问题，我们就应该控制让上游发送事件不那么快。
+   1.同步时，即在同一个线程收发事件。
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                for (int i = 0; ; i++) {   //无限循环发事件
+                    emitter.onNext(i);
+                }
+            }
+        }).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                Thread.sleep(2000);
+                Log.d(TAG, "" + integer);
+            }
+        });
+    结果：内存变化很小，问题解决.
+   2.异步时，即发送事件与接收事件在不同线程中，
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                for (int i = 0; ; i++) {    //无限循环发事件
+                    emitter.onNext(i);
+                }
+            }
+        }).subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<Integer>() {
+                    @Override
+                    public void accept(Integer integer) throws Exception {
+                        Thread.sleep(2000);
+                        Log.d(TAG, "" + integer);
+                    }
+                });
+     结果：内存爆掉。
+     分析：当异步时，上游发送数据不需要等待下游接收，这个时候我们就需要一个水缸来存储。当上游发送事件过快，水缸溢出就会OOM。
+
+     治理流速：
+11.filter操作符：过滤数据
+    Observable.create(new ObservableOnSubscribe<Integer>() {
+        @Override
+        public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+            for (int i = 0; ; i++) {
+                emitter.onNext(i);
+            }
+        }
+    }).subscribeOn(Schedulers.io())
+            .filter(new Predicate<Integer>() {
+                @Override
+                public boolean test(Integer integer) throws Exception {
+                    return integer % 10 == 0;//只允许能被10整除的数据通过
+                }
+            })
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(new Consumer<Integer>() {
+                @Override
+                public void accept(Integer integer) throws Exception {
+                    Log.d(TAG, "" + integer);
+                }
+            });
+    结果：内存增长速度降低，但是结果依旧会爆掉，力度不够。
+12.sample操作符：每隔指定的时间就从上游中取出一个事件发送给下
+    Observable.create(new ObservableOnSubscribe<Integer>() {
+        @Override
+        public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+            for (int i = 0; ; i++) {
+                emitter.onNext(i);
+            }
+        }
+    }).subscribeOn(Schedulers.io())
+            .sample(2, TimeUnit.SECONDS)  //sample取样
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(new Consumer<Integer>() {
+                @Override
+                public void accept(Integer integer) throws Exception {
+                    Log.d(TAG, "" + integer);
+                }
+            });
+    结果：虽然上游仍然一直在不停的发事件, 但是我们只是每隔一定时间取一个放进水缸里, 并没有全部放进水缸里, 因此这次内存并不会爆掉.
+总结：虽然filter和sample操作符可以缓解发送事件过快的问题，但是却有个缺点，就是会丢失数据。
+13.流速治理：减慢发事件速度
+    Observable.create(new ObservableOnSubscribe<Integer>() {
+        @Override
+        public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+            for (int i = 0; ; i++) {
+                emitter.onNext(i);
+                Thread.sleep(2000);  //每次发送完事件延时2秒
+            }
+        }
+    }).subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe(new Consumer<Integer>() {
+                @Override
+                public void accept(Integer integer) throws Exception {
+                    Log.d(TAG, "" + integer);
+                }
+            });
+    结果：内存平稳，而且事件也没有丢失, 上游通过适当的延时, 不但减缓了事件进入水缸的速度,
+          也可以让下游有充足的时间从水缸里取出事件来处理 , 就不至于导致大量的事件涌进水缸, 也就不会OOM啦.
+14.Flowable:响应式拉取，拥有一个默认可以储存128个是事件的水缸，根据下游的处理事件的能力，决定每次从水缸中取多少个事件来处理。
+        并且新建对象时，需要指定一个背压策略：
+            BackpressureStrategy.ERROR  //当出现发送和接收不平衡时 会抛出MissingBackpressureException异常
+            BackpressureStrategy.BUFFER  //给出一个大小没有限制的大水缸  此时Flowable与Observeable一样
+            BackpressureStrategy.DROP   //当水缸满了，就丢弃接下来的收到的事件
+            BackpressureStrategy.LATEST  //总能获得最后的那一个事件
+
+            示例：
+        public static void request(long n) {  // 按钮点击事件
+            mSubscription.request(n);   //在外部调用request请求上游
+        }
+        public static void demo3() {
+             Flowable.create(new FlowableOnSubscribe<Integer>() {
+                @Override
+                public void subscribe(FlowableEmitter<Integer> emitter) throws Exception {
+                    for (int i = 0; i < 128; i++) {  //这里设置大小为128 默认水缸大小 测试后改成129再测试
+                        Log.d(TAG, "emit " + i);
+                        emitter.onNext(i);
+                    }
+                }
+            }, BackpressureStrategy.ERROR).subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe(new Subscriber<Integer>() {
+
+                        @Override
+                        public void onSubscribe(Subscription s) {
+                            Log.d(TAG, "onSubscribe");
+                            mSubscription = s;
+                        }
+
+                        @Override
+                        public void onNext(Integer integer) {
+                            Log.d(TAG, "onNext: " + integer);
+                        }
+
+                        @Override
+                        public void onError(Throwable t) {
+                            Log.w(TAG, "onError: ", t);
+                        }
+
+                        @Override
+                        public void onComplete() {
+                            Log.d(TAG, "onComplete");
+                        }
+                    });
+        }
+        结果：当上游发送128个事件下游一个也不接收时，程序正常运行，当改成129时，再发送第129个事件时，程序抛出异常MissingBackpressureException
+15.Subscription消费器和开关：
+    与Disposable相比： 首先它们都是上下游中间的一个开关, 之前我们说调用Disposable.dispose()方法可以切断水管,
+           同样的调用Subscription.cancel()也可以切断水管, 不同的地方在于Subscription增加了一个void request(long n)方法，
+           这个方法参数就是下游处理事件的能力，也就是每次从水缸中取事件的数量。（下游默认的处理能力为 0）
+    上面的例子：当发送129个事件时只要我们快速点击一下按钮，让下游消费一个事件，程序就不会抛出异常。
+
+    ps:FLowable是我自己创建的, 所以我可以选择策略, 那面对有些FLowable并不是我自己创建的, 该怎么办呢?下面举例说明。
+
+16.interval操作符：interval操作符发送Long型的事件, 从0开始, 每隔指定的时间就把数字加1并发送出来
+        Flowable.interval(1, TimeUnit.MICROSECONDS)//每过一毫秒发送一个事件
+        //.onBackpressureDrop()  //加上背压策略  先注释掉
+        .observeOn(AndroidSchedulers.mainThread())
+        .subscribe(new Subscriber<Long>() {
+            @Override
+            public void onSubscribe(Subscription s) {
+                Log.d(TAG, "onSubscribe");
+                mSubscription = s;
+                s.request(Long.MAX_VALUE);
+            }
+
+            @Override
+            public void onNext(Long aLong) {
+                Log.d(TAG, "onNext: " + aLong);
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public void onError(Throwable t) {
+                Log.w(TAG, "onError: ", t);
+            }
+
+            @Override
+            public void onComplete() {
+                Log.d(TAG, "onComplete");
+            }
+        });
+    结果：MissingBackpressureException异常。
+    解决： 虽然不是我们自己创建的Flowble, 但是RxJava给我们提供了其他的方法:
+        onBackpressureBuffer()
+        onBackpressureDrop()
+        onBackpressureLatest()
+    我们取消注释掉的部分，就能看到结果了。
+17.响应式拉取：下游能够处理多少个事件，那么上游要根据下游的处理能力正确的去发送事件
+     FlowableEmitter：发射器
+        public interface FlowableEmitter<T> extends Emitter<T> {
+            void setDisposable(Disposable s);
+            void setCancellable(Cancellable c);
+
+            /**
+             * The current outstanding request amount.
+             * <p>This method is thread-safe.
+             * @return the current outstanding request amount
+             */
+            long requested();
+
+            boolean isCancelled();
+            FlowableEmitter<T> serialize();
+        }
+     我们着重看下request方法：
+        当同步时，requested()方法的返回值就是上游应该发送数据的数量。也是下游的处理能力！
+        public static void demo1() {
+            Flowable.create(new FlowableOnSubscribe<Integer>() {
+                @Override
+                public void subscribe(FlowableEmitter<Integer> emitter) throws Exception {
+                    Log.d(TAG, "current requested: " + emitter.requested());
+                }
+            }, BackpressureStrategy.ERROR)
+            .subscribe(new Subscriber<Integer>() {
+
+                @Override
+                public void onSubscribe(Subscription s) {
+                    Log.d(TAG, "onSubscribe");
+                    mSubscription = s;
+                    s.request(10);  //请求处理10个!
+                    s.request(100); //再请求处理100个！
+                }
+
+                @Override
+                public void onNext(Integer integer) {
+                    Log.d(TAG, "onNext: " + integer);
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    Log.w(TAG, "onError: ", t);
+                }
+
+                @Override
+                public void onComplete() {
+                    Log.d(TAG, "onComplete");
+                }
+            });
+        }
+     结果：D/TAG: onSubscribe
+           D/TAG: current requested: 110
+     分析：当下游Subscription每执行一次request(n),上游的requested()方法的返回值就增加n
+           当然当上游 emitter每发射一次onNext() 上游requested()方法的返回值就减少1.
+     我们再看一个同步出错的情况：
+        public static void demo2() {
+            Flowable.create(new FlowableOnSubscribe<Integer>() {
+                @Override
+                public void subscribe(final FlowableEmitter<Integer> emitter) throws Exception {
+                    Log.d(TAG, "before emit, requested = " + emitter.requested());
+
+                    Log.d(TAG, "emit 1");
+                    emitter.onNext(1);
+                    Log.d(TAG, "after emit 1, requested = " + emitter.requested());
+
+                    Log.d(TAG, "emit 2");
+                    emitter.onNext(2);
+                    Log.d(TAG, "after emit 2, requested = " + emitter.requested());
+
+                    Log.d(TAG, "emit 3");
+                    emitter.onNext(3);
+                    Log.d(TAG, "after emit 3, requested = " + emitter.requested());
+
+                    Log.d(TAG, "emit complete");
+                    emitter.onComplete();
+
+                    Log.d(TAG, "after emit complete, requested = " + emitter.requested());
+                }
+            }, BackpressureStrategy.ERROR)
+            .subscribe(new Subscriber<Integer>() {
+
+                @Override
+                public void onSubscribe(Subscription s) {
+                    Log.d(TAG, "onSubscribe");
+                    mSubscription = s;
+                    s.request(2);   //这里下游处理能力为2  上游也就只能发射2个onNext()事件
+                }
+
+                @Override
+                public void onNext(Integer integer) {
+                    Log.d(TAG, "onNext: " + integer);
+                }
+
+                @Override
+                public void onError(Throwable t) {
+                    Log.w(TAG, "onError: ", t);
+                }
+
+                @Override
+                public void onComplete() {
+                    Log.d(TAG, "onComplete");
+                }
+            });
+        }
+     结果：当发射第三个事件时，抛出MissingBackpressureException异常
+
+
+     当异步时：上游发射能力会默认赋值为128，即requested()方法返回128。此时发射能力与下游Subscription的request方法无关。
+              当下游从水缸中取出数量达到96个（3/4）时，上游才会继续发射事件来填充水缸.
+
+      public static void request() {
+             mSubscription.request(96); //请求96个事件
+         }
+
+     public static void demo4() {
+            Flowable.create(new FlowableOnSubscribe<Integer>() {
+                 @Override
+                 public void subscribe(FlowableEmitter<Integer> emitter) throws Exception {
+                     Log.d(TAG, "First requested = " + emitter.requested());
+                     boolean flag;
+                     for (int i = 0; ; i++) {
+                         flag = false;
+                         while (emitter.requested() == 0) {
+                             if (!flag) {
+                                 Log.d(TAG, "Oh no! I can't emit value!");
+                                 flag = true;
+                             }
+                         }
+                         emitter.onNext(i);
+                         Log.d(TAG, "emit " + i + " , requested = " + emitter.requested());
+                     }
+                 }
+             }, BackpressureStrategy.ERROR)
+             .subscribeOn(Schedulers.io())
+             .observeOn(AndroidSchedulers.mainThread())
+             .subscribe(new Subscriber<Integer>() {
+
+                 @Override
+                 public void onSubscribe(Subscription s) {
+                     Log.d(TAG, "onSubscribe");
+                     mSubscription = s;
+                 }
+
+                 @Override
+                 public void onNext(Integer integer) {
+                     Log.d(TAG, "onNext: " + integer);
+                 }
+
+                 @Override
+                 public void onError(Throwable t) {
+                     Log.w(TAG, "onError: ", t);
+                 }
+
+                 @Override
+                 public void onComplete() {
+                     Log.d(TAG, "onComplete");
+                 }
+             });
+     }
+     结果：当我们点击按钮去取出96个后，上游将会继续发射事件。
+    演示用例：读取一个文本文件，需要一行一行读取，然后处理并输出，如果文本文件很大的时候，
+          比如几十M的时候，全部先读入内存肯定不是明智的做法，因此我们可以一边读取一边处理，实现的代码如下：
+        Flowable.create(new FlowableOnSubscribe<String>() {
+            @Override
+            public void subscribe(FlowableEmitter<String> emitter) throws Exception {
+                try {
+                    FileReader reader = new FileReader("test.txt");
+                    BufferedReader br = new BufferedReader(reader);
+                    String str;
+                    while ((str = br.readLine()) != null && !emitter.isCancelled()) {
+                        while (emitter.requested() == 0) {
+                            if (emitter.isCancelled()) {
+                                break;
+                            }
+                        }
+                        emitter.onNext(str);
+                    }
+                    br.close();
+                    reader.close();
+                    emitter.onComplete();
+                } catch (Exception e) {
+                    emitter.onError(e);
+                }
+            }
+        }, BackpressureStrategy.ERROR)
+        .subscribeOn(Schedulers.io())
+        .observeOn(Schedulers.newThread())
+        .subscribe(new Subscriber<String>() {
+            @Override
+            public void onSubscribe(Subscription s) {
+                mSubscription = s;
+                s.request(1);
+            }
+            @Override
+            public void onNext(String string) {
+                System.out.println(string);
+                try {
+                    Thread.sleep(2000);
+                    mSubscription.request(1);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+            @Override
+            public void onError(Throwable t) {
+                System.out.println(t);
+            }
+            @Override
+            public void onComplete() {
+            }
+        });
+    结果：一行一行的输出文件中的内容。
+
+////////////////////////////////////////////////////////////////////////////////TODO 操作符////////////////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////TODO 创建操作/////////////////////////////////////////
+   //TODO   create：从头开始创建一个Observable
+         public final Disposable subscribe() {}   //不带任何参数的subscribe() 表示下游不关心任何事件
+         public final Disposable subscribe(Consumer<? super T> onNext) {}
+               //带有一个Consumer参数的方法表示下游只关心onNext事件(onComplete等事件依然会终止发送), 其他的事件我假装没看见, 因此我们如果只需要onNext事件可以这么写:
+               Observable.create(new ObservableOnSubscribe<Integer>() {
+                     @Override
+                     public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                         emitter.onNext(1);
+                         emitter.onNext(2);
+                         emitter.onNext(3);
+                         emitter.onComplete();
+                         emitter.onNext(4);
+                     }
+                 }).subscribe(new Consumer<Integer>() {
+                     @Override
+                     public void accept(Integer integer) throws Exception {
+                         Log.d(TAG, "onNext: " + integer);
+                     }
+                 });
+         public final Disposable subscribe(Consumer<? super T> onNext, Consumer<? super Throwable> onError) {}//同理
+         public final Disposable subscribe(Consumer<? super T> onNext, Consumer<? super Throwable> onError, Action onComplete) {}//同理
+         public final Disposable subscribe(Consumer<? super T> onNext, Consumer<? super Throwable> onError, Action onComplete, Consumer<? super Disposable> onSubscribe) {}//同理
+         public final void subscribe(Observer<? super T> observer) {}
+   //TODO   defer：操作符会一直等待直到有观察者订阅它，然后它使用Observable工厂方法生成一个Observable。它对每个观察者都这样做，
+   //TODO          因此尽管每个订阅者都以为自己订阅的是同一个Observable，事实上每个订阅者获取的是它们自己的单独的数据序列。能保证数据肯定是最新的。
+        final Observable<Integer> observable = Observable.defer(new Callable<ObservableSource<? extends Integer>>() {
+            @Override
+            public ObservableSource<? extends Integer> call() throws Exception {
+                return Observable.create(new ObservableOnSubscribe<Integer>() {
+                    @Override
+                    public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                        e.onNext(i);
+                    }
+                });
+            }
+        });
+        i = 1;
+        observable.subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulToastUtils.showToast("i的值是：" + integer);
+                //TODO 结果： i的值是：1
+            }
+        });
+   //TODO   empty：创建一个什么都不做直接通知完成的Observable
+        Observable observable1=Observable.empty();//直接调用onCompleted。
+   //TODO   error：创建一个什么都不做直接通知错误的Observable
+        Observable observable2=Observable.error(new RuntimeException());//直接调用onError。这里可以自定义异常
+   //TODO   never：创建一个什么都不做的Observable
+        Observable observable3=Observable.never();//啥都不做
+   //TODO   fromArray:遍历数组
+        Integer[] as = {1, 2, 3, 4, 5};
+        Observable.fromArray(as).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer ints) throws Exception {
+                WonderfulLogUtils.logi("TAG", ints + "");
+            }
+        });
+   //TODO   fromIterable:遍历迭代器聚集
+        List<Integer> as = new ArrayList<Integer>() {{
+            add(1);add(2);add(3);add(4);add(5);//动态代码块
+        }};
+        Observable.fromIterable(as).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integers) throws Exception {
+                WonderfulLogUtils.logi("TAG", integers + "");
+            }
+        });
+   //TODO   interval：操作符返回一个Observable，它按固定的时间间隔发射一个无限递增的整数序列。
+        disposable = Observable.interval(2000, 500, TimeUnit.MILLISECONDS).subscribe(new Consumer<Long>() {
+            @Override
+            public void accept(Long aLong) throws Exception {
+                WonderfulLogUtils.logi("TAG", aLong + "");
+                if (aLong >= 10) {
+                    disposable.dispose();
+                }
+            }
+        });
+   //TODO   just：将单个数据转换为发射那个数据的Observable，类似于From，但是From会将数组或Iterable的数据取出然后逐个发射，而Just只是简单的原样发射，将数组或Iterable当做单个数据。
+        Observable.just(1, "2a", "haha", 2).subscribe(new Consumer<Serializable>() {
+            @Override
+            public void accept(Serializable serializable) throws Exception {
+                WonderfulLogUtils.logi("TAG", String.valueOf(serializable));
+            }
+        });
+   //TODO   range：发射一个范围内的有序整数序列，你可以指定范围的起始和长度。
+   //TODO   intervalRange:周期的发射
+        Observable.range(1, 10).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG",integer+"");//包前包尾
+            }
+        });
+   //TODO   repeat：创建一个发射特定数据重复多次的Observable(默认无限次)
+      Observable.intervalRange(1, 3, 2000, 500, TimeUnit.MILLISECONDS).repeat(3).subscribe(new Consumer<Long>() {
+          @Override
+          public void accept(Long integer) throws Exception {
+              WonderfulLogUtils.logi("TAG", integer + "");
+          }
+      });
+   //TODO   startWith：返回一个Observable，它发射一个类似于函数声明的值
+      Observable.range(1, 3).startWith(new ArrayList<Integer>() {{
+          add(11);add(12);
+      }}).subscribe(new Consumer<Integer>() {
+          @Override
+          public void accept(Integer integer) throws Exception {
+              WonderfulLogUtils.logi("TAG", integer + "");
+          }
+      });
+   //TODO   timer：它在延迟一段给定的时间后发射一个简单的数字0。
+        Observable.timer(2000, TimeUnit.MILLISECONDS).subscribe(new Consumer<Long>() {
+            @Override
+            public void accept(Long aLong) throws Exception {
+                WonderfulLogUtils.logi("TAG", aLong + "");
+            }
+        });
+
+
+//////////////////////////////////////////////////////////TODO 变换操作/////////////////////////////////////////////
+
+
+   //TODO   buffer：定期收集Observable的数据放进一个数据包裹，然后发射这些数据包裹，而不是一次发射一个值。
+   //TODO   Buffer操作符将一个Observable变换成另一个，原来的Observable正常发射数据，变换产生的Observable发射这些数据的缓存集合。
+   //TODO   如果原来的Observable发射了一个onError通知，buffer会立即传递这个通知，而不是首先发射缓存的数据，即使已经缓存了数据。
+        Observable.range(2, 6).buffer(2).subscribe(new Consumer<List<Integer>>() {
+            @Override
+            public void accept(List<Integer> integers) throws Exception {
+                WonderfulLogUtils.logi("TAG", integers.toString());//[2,3] [4,5] [6.7]
+            }
+        });
+   //TODO   buffer(count,skip)：下一个事件集合的第一个元素从0开始，跳过多少个 skip*n+1
+        Observable.range(1, 7).buffer(2,1).subscribe(new Consumer<List<Integer>>() {
+            @Override
+            public void accept(List<Integer> integers) throws Exception {
+                WonderfulLogUtils.logi("TAG", integers.toString());//[1,2] [4,5] [7]
+            }
+        });
+   //TODO   map:它的作用就是对上游发送的每一个事件应用一个函数, 使得每一个事件都按照指定的函数去变化。
+   //TODO   通俗易懂：自己重写一个有返回值的方法，方法内部用到上游发送的参数，将返回值作为下游接收到的数据。
+       Observable.create(new ObservableOnSubscribe<Integer>() {
+           @Override
+           public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+               emitter.onNext(1);
+               emitter.onNext(2);
+               emitter.onNext(3);
+           }
+       }).map(new Function<Integer, String>() {
+           @Override
+           public String apply(Integer integer) throws Exception {
+               return "This is result " + integer;//这里将上游发送的int类型数据整合成下游需要的String类型的数据
+           }
+       }).subscribe(new Consumer<String>() {
+           @Override
+           public void accept(String s) throws Exception {
+               Log.d(TAG, s);
+           }
+       });
+   //TODO    flatMap：FlatMap将一个发送事件的上游Observable变换为多个发送事件的Observables，然后将它们发射的事件合并后放进一个单独的Observable里.
+   //TODO    通俗得讲：将原本发事件的上游变成另一个发事件的上游。
+   //TODO    注意：使用flatmap转换过后的上游在发送事件时，下游不一定是按原上游发送事件的顺序接收到数据。
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                emitter.onNext(1);
+                emitter.onNext(2);
+                emitter.onNext(3);
+            }
+        }).flatMap(new Function<Integer, ObservableSource<String>>() {
+            @Override
+            public ObservableSource<String> apply(Integer integer) throws Exception {
+                final List<String> list = new ArrayList<>();
+                for (int i = 0; i < 3; i++) {
+                    list.add("I am value " + integer);
+                }
+                //将原上游改变成一次发送list集合中的元素的新上游
+                return Observable.fromIterable(list).delay(10,TimeUnit.MILLISECONDS);
+            }
+        }).subscribe(new Consumer<String>() {
+            @Override
+            public void accept(String s) throws Exception {
+                Log.d(TAG, s);
+            }
+        });
+   //TODO   concatMap：它和flatMap的作用几乎一模一样, 只是它的结果是严格按照上游发送的顺序来发送的,
+   //TODO   switchMap：类似于flatMap(),有一点不同，只监视当前Observable，或者是最后发射的数据。需要延时执行，当是延时是0 的时候回发射第一个数据，延时是大于0的任何值都是发射最后一个值
+       Observable.range(1, 7).switchMap(new Function<Integer, ObservableSource<Integer>>() {
+           @Override
+           public ObservableSource<Integer> apply(Integer integer) throws Exception {
+               return Observable.just(integer).delay(1, TimeUnit.MILLISECONDS);
+           }
+       }).subscribe(new Consumer<Integer>() {
+           @Override
+           public void accept(Integer integer) throws Exception {
+               WonderfulLogUtils.logi("TAG", integer + "");// 1
+           }
+       });
+   //TODO    groupBy()：对原来Observable发射的数据进行分组，形成一个GroupedObservable的结果集，GroupedObservable.getKey()可以获取键,
+       Observable.range(1, 5).groupBy(new Function<Integer, Integer>() {
+           @Override
+           public Integer apply(Integer integer) throws Exception {
+               return integer < 2 ? 1 : 2;
+           }
+       }).subscribe(new Consumer<GroupedObservable<Integer, Integer>>() {
+           @Override
+           public void accept(final GroupedObservable<Integer, Integer> result) throws Exception {
+               result.subscribe(new Consumer<Integer>() {
+                   @Override
+                   public void accept(Integer integer) throws Exception {
+                       WonderfulLogUtils.logi("TAG", result.getKey() + ":" + integer);
+                   }
+               });
+           }
+       });
+   //TODO   case：类似于map操作符，map()操作符可以自定义规则，将值A1编程A2，A1和A2的类型可以一样也可以不一样；而cast()操作符主要是做类型转换的，
+   //TODO   传入参数的类型class，如果Observable发射的结果不能转成指定的class,就会抛出ClassCastException运行异常
+         Observable.just("我是谁", "王登峰", 1).cast(String.class).subscribe(new Consumer<String>() {
+             @Override
+             public void accept(String s) throws Exception {
+                 WonderfulLogUtils.logi("TAG", s);
+             }
+         });
+   //TODO    scan：通过遍历原来Observable产生的结果，每一次对每一个结果按照指定规则进行运算，如果指定第一个参数那么第一次发射的就是这个参数值
+        Observable.just(1, 2, 3, 4, 5).scan(2, new BiFunction<Integer, Integer, Integer>() {
+            @Override
+            public Integer apply(Integer result, Integer value) throws Exception {
+                return result + value;
+            }
+        }).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG", integer + "");//2,3,5,8,12,17
+            }
+        });
+   //TODO？    window：类似于buffer()操作符，区别在于buffer操作符产生的结果是List缓存，而window()操作符产生的是一个Observable对象，订阅者可以对这个产生的Observable对象重新进行订阅处理
+        Observable.interval(1, TimeUnit.SECONDS).window(4100, TimeUnit.MILLISECONDS).subscribe(new Consumer<Observable<Long>>() {
+            @Override
+            public void accept(Observable<Long> longObservable) throws Exception {
+                longObservable.subscribe(new Observer<Long>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+
+                    }
+
+                    @Override
+                    public void onNext(Long value) {
+                        WonderfulLogUtils.logi("TAG", value + "");
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        WonderfulLogUtils.logi("TAG", "出错");
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        WonderfulLogUtils.logi("TAG", "完成");
+                    }
+                });
+            }
+        });
+   //TODO   debounce：源Observable每发射一个数据项，如果在debounce规定的间隔时间内Observable没有发射新的数据项，
+   //TODO   debounce就把这个结果提交给订阅者处理，如果在规定的间隔时间内产生了其他结果，就忽略掉发射的这个数据,
+   //TODO   通过制定的时间间隔来限流，可以过滤掉发射速率过快的数据项
+        Observable.create(new ObservableOnSubscribe<String>() {
+            @Override
+            public void subscribe(ObservableEmitter<String> e) throws Exception {
+                for (int i = 0; i < 10; i++) {
+                    e.onNext(i + "00");
+                    Thread.sleep(100 * i);
+                }
+            }
+        }).subscribeOn(Schedulers.io())
+        .observeOn(AndroidSchedulers.mainThread())
+        .debounce(500, TimeUnit.MILLISECONDS)
+        .subscribe(new Consumer<String>() {
+            @Override
+            public void accept(String s) throws Exception {
+                WonderfulLogUtils.logi("TAG", s);//500,600,700,800,900
+            }
+        });
+   //TODO   distinct：只允许还没有发射过的数据项通过
+        Observable.just(1, 2, 3, 3, 3, 1, 5, 6).distinct().subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG",integer+"");//1,2,3,5,6
+            }
+        });
+   //TODO   distinct(Function):这个操作符有一个变体接受一个函数。这个函数根据原始Observable发射的数据项产生一个Key，
+   //TODO   然后，比较这些Key而不是数据本身，来判定两个数据是否是不同的。相同就过滤掉。
+        Observable.just(1, 2, 3, 3, 3, 1, 5, 6).distinct(new Function<Integer, String>() {
+            @Override
+            public String apply(Integer integer) throws Exception {
+                return integer < 3 ? "小数字" : "大数字";
+            }
+        }).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG", integer + "");//1,3
+            }
+        });
+   //TODO   elementAt(index)：将指定索引的数据项提交给订阅者，索引是从0开始，当没有这个索引或者索引为负数会抛异常。
+   //TODO   elementAt(index,default):将指定索引的数据项提交给订阅者，索引是从0开始，当没有这个索引发射默认的，当索引为负数会抛异常。
+        Observable.just(1, 2, 3, 3, 3, 1, 5, 6).elementAt(2).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG", integer + "");//3
+            }
+        });
+   //TODO   filter：对源Observable发射的数据项按照指定的条件进行过滤，满足的条件的才会调给订阅者。
+        Observable.range(0, 5).filter(new Predicate<Integer>() {
+            @Override
+            public boolean test(Integer integer) throws Exception {
+                return integer > 3;
+            }
+        }).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG", integer + "");//4
+            }
+        });
+   //TODO   ofType：类似于filter操作符，区别在于ofType按照数据项的类型进行过滤
+        Observable.just("1", 2, true, 3, "4").ofType(String.class).subscribe(new Consumer<String>() {
+            @Override
+            public void accept(String s) throws Exception {
+                WonderfulLogUtils.logi("TAG", s);//1,4
+            }
+        });
+   //TODO   firstElement：只发射第一项（或者满足某个条件的第一项）数据，没有满足的不会有异常
+        Observable.just(1, 2, 3, 4).firstElement().subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG", integer + "");//1
+            }
+        });
+   //TODO   first(default)：没有满足的发射默认的
+        Observable.just(1, 2, 3, 4).filter(new Predicate<Integer>() {
+            @Override
+            public boolean test(Integer integer) throws Exception {
+                return false;
+            }
+        }).first(6).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG", integer + "");//6
+            }
+        });
+   //TODO   singleElement：如果原始Observable在完成之前不是正好发射一次数据，它会抛出异常，多了少了都不行
+        Observable.just(1, 2, 3, 4).filter(new Predicate<Integer>() {
+            @Override
+            public boolean test(Integer integer) throws Exception {
+                return integer > 3;
+            }
+        }).singleElement().subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG", integer + "");//4
+            }
+        });
+   //TODO   single(default)：没有符合的发射默认的
+        Observable.just(1, 2, 3, 4).filter(new Predicate<Integer>() {
+            @Override
+            public boolean test(Integer integer) throws Exception {
+                return integer > 4;
+            }
+        }).single(6).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG", integer + "");//6
+            }
+        });
+   //TODO    IgnoreElements:操作符抑制原始Observable发射的所有数据，只允许它的终止通知（onError或onCompleted）通过。
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                e.onNext(1);
+                e.onNext(2);
+                e.onNext(3);
+                e.onNext(4);
+        //      e.onComplete();
+            }
+        }).ignoreElements().subscribe(new Action() {
+            @Override
+            public void run() throws Exception {
+                WonderfulLogUtils.logi("TAG", "执行了");//没有打出这句话
+            }
+        });
+   //TODO   last：只发射最后一项（或者满足某个条件的最后一项）数据
+        Observable.range(1, 5).filter(new Predicate<Integer>() {
+            @Override
+            public boolean test(Integer integer) throws Exception {
+                return integer > 3;
+            }
+        }).last(6).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG",integer+"");//5
+            }
+        });
+   //TODO   skiplast(n):跳过最后n项
+        Observable.range(1, 5).filter(new Predicate<Integer>() {
+            @Override
+            public boolean test(Integer integer) throws Exception {
+                return integer > 2;
+            }
+        }).skipLast(1).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG",integer+"");//3,4
+            }
+        });
+   //TODO   sample：每隔指定的时间就从上游中取出一个事件发送给下游，这段时间间隔最近的一个数据
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                for (int i = 0; i < 15; i++) {
+                    Thread.sleep(1000);
+                    e.onNext(i);
+                }
+            }
+        }).subscribeOn(Schedulers.io())
+        .observeOn(AndroidSchedulers.mainThread())
+        .sample(3020, TimeUnit.MILLISECONDS)
+        .subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG", integer + "");//2,5,8,11.14
+            }
+        });
+   //TODO   throttleFirst:每隔指定的时间就从上游中取出一个事件发送给下游，这段时间间隔的第一个一个数据
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                for (int i = 0; i < 15; i++) {
+                    Thread.sleep(1000);
+                    e.onNext(i);
+                }
+            }
+        }).subscribeOn(Schedulers.io())
+        .observeOn(AndroidSchedulers.mainThread())
+        .throttleFirst(2980, TimeUnit.MILLISECONDS)
+        .subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG", integer + "");//2,5,8,11.14
+            }
+        });
+   //TODO   skip：抑制Observable发射的前N项数据
+        Observable.just(1, 2, 3, 4, 5, 6).skip(3).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG", integer + "");//4,5,6
+            }
+        });
+   //TODO   skipLast：抑制Observable发射的后N项数据
+        Observable.just(1, 2, 3, 4, 5, 6).skipLast(3).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG", integer + "");//1,2,3
+            }
+        });
+   //TODO   take：只发射前面的N项数据
+        Observable.just(1, 2, 3, 4, 5, 6).take(3).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG", integer + "");//1,2,3
+            }
+        });
+   //TODO   takelast：只发射Observable发射的最后N项数据
+        Observable.just(1, 2, 3, 4, 5, 6).takeLast(3).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG", integer + "");//4,5,6
+            }
+        });
+
+
+//////////////////////////////////////////////////////////TODO 结合操作/////////////////////////////////////////////
+
+
+    //TODO  combineLatest：当两个Observables中的任何一个发射了数据时，使用一个函数结合每个Observable发射的最近数据项，并且基于这个函数的结果发射数据。
+        sp:CombineLatest操作符行为类似于zip，但是只有当原始的Observable中的每一个都发射了一条数据时zip才发射数据。
+           CombineLatest则在原始的Observable中任意一个发射了数据时发射一条数据。当原始Observables的任何一个发射了一条数据时，
+           CombineLatest使用一个函数结合它们最近发射的数据，然后发射这个函数的返回值。
+        Observable<Integer> ob1 = Observable.just(1, 2, 3);
+        Observable<Integer> ob2 = Observable.just(4, 5, 6);
+        Observable<Integer> ob3 = Observable.just(7, 8, 9,2,7);
+
+        Observable.combineLatest(ob1, ob2, ob3, new Function3<Integer, Integer, Integer, Integer>() {
+            @Override
+            public Integer apply(Integer integer, Integer integer2, Integer integer3) throws Exception {
+                return Math.max(integer, Math.max(integer2, integer3));
+            }
+        }).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG", integer + "");//7,8,9,6,7
+            }
+        });
+    //TODO  join： 任何时候，只要在另一个Observable发射的数据定义的时间范围内，这个Observable发射了一条数据，就结合两个Observable发射的数据；
+    //TODO  换句话说，在其中一个Observable发射数据时，只要另一个Observable发射的数据还没过期（会有2个函数定义各自的有效时间窗口（delay参数）），就结合2个Observable发射的数据。
+    //TODO  后发射的的数据占主导位置
+        Observable<Integer> ob1 = Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                for (int i = 0; i < 4; i++) {
+                    Thread.sleep(i * i * i * 80);
+                    e.onNext(i);
+                }
+            }
+        }).subscribeOn(Schedulers.io());
+        Observable<Integer> ob3 = Observable.just(4, 5, 6);
+        Observable<Integer> ob2 = Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                for (int i = 5; i < 9; i++) {
+                    Thread.sleep(i * 200);
+                    e.onNext(i);
+                }
+            }
+        }).subscribeOn(Schedulers.io());
+
+        ob1.join(ob2, new Function<Integer, ObservableSource<Integer>>() {//ob1产生结果生命周期控制函数
+            @Override
+            public ObservableSource<Integer> apply(Integer integer) throws Exception {
+                return Observable.just(integer).delay(1000, TimeUnit.MILLISECONDS);  //使ob1延迟200毫秒执行
+            }
+        }, new Function<Integer, ObservableSource<Integer>>() {//ob2产生结果声明周期控制函数
+            @Override
+            public ObservableSource<Integer> apply(Integer integer) throws Exception {
+                return Observable.just(integer).delay(1000, TimeUnit.MILLISECONDS);  //使ob2延迟200毫秒执行
+            }
+        }, new BiFunction<Integer, Integer, Integer>() {
+            @Override
+            public Integer apply(Integer integer, Integer integer2) throws Exception {
+                WonderfulLogUtils.logi("TAG", integer + "//" + integer2);  //  0//5  1//5  2//5  3//6  3//7
+                return Math.max(integer, integer2);
+            }
+        }).observeOn(AndroidSchedulers.mainThread()).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG", integer + "");// 5  5  5  6  7
+            }
+        });
+
+    }
+    //TODO  merge：将多个Observalbe发射的数据项，合并到一个Observable中再发射出去，可能会让合并的Observable发射的数据交错（concat是连接不会出现交错），
+    //TODO  如果在合并的途中出现错误，就会立即将错误提交给订阅者，将终止合并后的Observable
+    //TODO  mergeDelayError：操作符类似于merge操作符，唯一不同就是如果在合并途中出现错误，不会立即发射错误通知，而是保留错误直到合并后的Observable将所有的数据发射完成，此时才会将onError提交给订阅者。
+        Observable ob1 = Observable.range(1, 10);
+        Observable ob2 = Observable.just(2, 6, "c", "d", 7, "f");
+        Observable.mergeDelayError(ob2, ob1).subscribe(new Consumer() {
+            @Override
+            public void accept(Object o) throws Exception {
+                WonderfulLogUtils.logi("TAG", o.toString());
+            }
+        });
+    //TODO  startWith：是在源Observable提交结果之前插入指定的数据，可以是数值，也可以是Observable对象
+        Observable.just(1, 2, 3).startWith(0).subscribe(new Consumer() {
+            @Override
+            public void accept(Object o) throws Exception {
+                WonderfulLogUtils.logi("TAG", o.toString());//0,1,2,3
+            }
+        });
+    //TODO  switchOnNext：switchOnNext操作符是把一组Observable转换成一个Observable，转换规则为：对于这组Observable中的每一个Observable所产生的结果，
+    //TODO  如果在同一个时间内存在两个或多个Observable提交的结果，只取最后一个Observable提交的结果给订阅者
+        Observable<Observable<Long>> observable = Observable.interval(0, 300, TimeUnit.MILLISECONDS).map(new Function<Long, Observable<Long>>() {
+            @Override
+            public Observable<Long> apply(Long aLong) throws Exception {
+                return Observable.interval(0, 100, TimeUnit.MILLISECONDS).map(new Function<Long, Long>() {
+                    @Override
+                    public Long apply(Long aLong) throws Exception {
+                        return 10 * aLong;
+                    }
+                }).take(5);
+            }
+        }).take(2);
+        Observable.switchOnNext(observable).subscribe(new Consumer<Long>() {
+            @Override
+            public void accept(Long integer) throws Exception {
+                WonderfulLogUtils.logi("TAG", integer + "");//0,10,20,0,10,20,30,40
+            }
+        });
+    //TODO  zip：如9所示
+
+//////////////////////////////////////////////////////////TODO 错误处理/////////////////////////////////////////////
+
+
+    //TODO  catch：catch操作符拦截原Observable的onError通知，将它替换为其它的数据项或数据序列，让产生的Observable能够正常终止或者根本不终止。
+    //TODO  onErrorReturn：让Observable遇到错误时发射一个特殊的项并且正常终止。
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                e.onNext(1);e.onNext(2);e.onNext(3);e.onError(new Throwable());e.onNext(4);e.onNext(5);
+            }
+        }).onErrorReturn(new Function<Throwable, Integer>() {
+            @Override
+            public Integer apply(Throwable throwable) throws Exception {
+                return -1;
+            }
+        }).subscribe(new Observer<Integer>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+            }
+
+            @Override
+            public void onNext(Integer value) {
+                WonderfulLogUtils.logi("TAG",value+"");
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                WonderfulLogUtils.logi("TAG","error");
+            }
+
+            @Override
+            public void onComplete() {
+                WonderfulLogUtils.logi("TAG","complete");
+            }
+        });
+        结果：1,2,3,-1,complete
+    //TODO  onErrorResumeNext：让Observable在遇到错误时开始发射第二个Observable的数据序列。
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                e.onNext(1);e.onNext(2);e.onNext(3);e.onError(new Throwable());e.onNext(4);e.onNext(5);
+            }
+        }).onResumeNext(new Function<Throwable, ObservableSource<? extends Integer>>() {
+            @Override
+            public ObservableSource<? extends Integer> apply(Throwable throwable) throws Exception {
+                return Observable.just(-1,9,8);
+            }
+        }).subscribe(new Observer<Integer>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+            }
+
+            @Override
+            public void onNext(Integer value) {
+                WonderfulLogUtils.logi("TAG",value+"");
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                WonderfulLogUtils.logi("TAG","error");
+            }
+
+            @Override
+            public void onComplete() {
+                WonderfulLogUtils.logi("TAG","complete");
+            }
+        });
+    结果：1,2,3,-1,9,8,complete
+    //TODO  onExceptionResumeNext:onExceptionResumeNext方法与onErrorResumeNext方法类似创建并返回一个拥有类似原Observable的新Observable，
+    //TODO  也使用这个备用的Observable。不同的是，如果onError收到的Throwable不是一个Exception，它会将错误传递给观察者的onError方法，不会使用备用的Observable
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                e.onNext(1);e.onNext(2); e.onNext(3);e.onError(new Exception("haha"));e.onNext(4);e.onNext(5);
+            }
+        }).onExceptionResumeNext(Observable.just(9, 10)).subscribe(new Observer<Integer>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+            }
+            @Override
+            public void onNext(Integer value) {
+                WonderfulLogUtils.logi("TAG", value + "");
+            }
+            @Override
+            public void onError(Throwable e) {
+                WonderfulLogUtils.logi("TAG", "error");
+            }
+            @Override
+            public void onComplete() {
+                WonderfulLogUtils.logi("TAG", "complete");
+            }
+        });
+    结果：1,2,3,9,10,complete
+    //TODO  retry：拦截原Observable传递onError给观察者，而是重新订阅此Observable。由于是重新订阅会造成数据重复。
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                e.onNext(1);e.onNext(2);e.onNext(3);
+                if (i++ == 0) e.onError(new Exception("haha"));
+                e.onNext(4);e.onNext(5);
+            }
+        }).retry().subscribe(new Observer<Integer>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+            }
+
+            @Override
+            public void onNext(Integer value) {
+                WonderfulLogUtils.logi("TAG", value + "");
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                WonderfulLogUtils.logi("TAG", "error");
+            }
+
+            @Override
+            public void onComplete() {
+                WonderfulLogUtils.logi("TAG", "complete");
+            }
+        });
+    结果：1,2,3,1,2,3,4,5
+    //TODO  retryWhen：retryWhen和retry类似，区别是，retryWhen将onError中的Throwable传递给一个函数，这个函数产生另一个Observable，
+    //TODO  retryWhen观察它的结果再决定是不是要重新订阅原始的Observable。如果这个Observable发射了一项数据（并且发射的complete 或 error 不是第二个事件时），它就重新订阅，
+    //TODO  如果这个Observable发射的是onError通知，它就将这个通知传递给观察者然后终止。
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                e.onNext(1);e.onNext(2);e.onNext(3);
+                if (i++ == 0) e.onError(new Exception("haha"));
+                e.onNext(4);e.onNext(5);
+            }
+        }).retryWhen(new Function<Observable<Throwable>, ObservableSource<?>>() {
+            @Override
+            public ObservableSource<Integer> apply(Observable<Throwable> throwableObservable) throws Exception {
+                return Observable.create(new ObservableOnSubscribe<Integer>() {
+                    @Override
+                    public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                        e.onNext(9);
+                        e.onNext(9);
+                        e.onComplete();//这里可以利用delay延时重试
+                    }
+                });
+            }
+        }).subscribe(new Observer<Integer>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+            }
+
+            @Override
+            public void onNext(Integer value) {
+                WonderfulLogUtils.logi("TAG", value + "");
+            }
+
+            @Override
+            public void onError(Throwable e) {
+                WonderfulLogUtils.logi("TAG", "error");
+            }
+
+            @Override
+            public void onComplete() {
+                WonderfulLogUtils.logi("TAG", "complete");
+            }
+        });
+    结果：1,2,3,1,2,3,4,5
+
+
+//////////////////////////////////////////////////////////TODO 辅助操作/////////////////////////////////////////////
+
+    //TODO  delay：延迟一段指定的时间再发射来自Observable的发射物
+        Observable.just(1,2,3).delay(2000, TimeUnit.MILLISECONDS).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG",integer+"");
+            }
+        });//(过两秒后) 1,2,3
+    //TODO  do：注册一个动作作为原始Observable生命周期事件的一种占位符,你可以注册回调，
+    //TODO  当Observable的某个事件发生时，Rx会在与Observable链关联的正常通知集合中调用它。Rx实现了多种操作符用于达到这个目的。
+    //TODO  doOnEach：可以给Observable加上这样的样一个回调：Observable每发射一个数据的时候就会触发这个回调，不仅包括onNext还包括onError和onCompleted。
+    //TODO  doOnNext：只有onNext的时候才会被触发，在onNext方法之前执行
+    //TODO  doAfterNext：在onNext方法之后执行
+    //TODO  doOnSubscribe：注册一个动作，当观察者订阅它生成的Observable它就会被调用。
+    //TODO  doOnUnsubscribe：注册一个动作，当观察者取消订阅它生成的Observable它就会被调用。
+    //TODO  doOnError：会在OnError发生的时候触发回调，并将Throwable对象作为参数传进回调函数里
+    //TODO  doOnComplete：会在OnCompleted发生的时候触发回调。
+    //TODO  doOnTerminate：注册一个动作，当它产生的Observable终止之前会被调用，无论是正常还是异常终止。
+    //TODO  finallyDo：操作符注册一个动作，当它产生的Observable终止之后会被调用，无论是正常还是异常终止。
+        Observable.just(1, 2, 3).doOnEach(new Consumer<Notification<Integer>>() {
+            @Override
+            public void accept(Notification<Integer> integerNotification) throws Exception {
+                WonderfulLogUtils.logi("doOnEach", integerNotification.getValue() + "");
+            }
+        }).doOnNext(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("doOnNext", "" + integer);
+            }
+        }).doOnSubscribe(new Consumer<Disposable>() {
+            @Override
+            public void accept(Disposable disposable) throws Exception {
+                WonderfulLogUtils.logi("doOnSubscribe", "我被订阅了");
+            }
+        }).doOnDispose(new Action() {
+            @Override
+            public void run() throws Exception {
+                WonderfulLogUtils.logi("doOnDispose", "被切断了");
+            }
+        }).doAfterNext(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("doAfterNext", "doAfterNext");
+            }
+        }).doOnError(new Consumer<Throwable>() {
+            @Override
+            public void accept(Throwable throwable) throws Exception {
+                WonderfulLogUtils.logi("doOnError", "doOnError");
+            }
+        }).doOnComplete(new Action() {
+            @Override
+            public void run() throws Exception {
+                WonderfulLogUtils.logi("doOnComplete", "doOnComplete");
+            }
+        }).doOnTerminate(new Action() {
+            @Override
+            public void run() throws Exception {
+                WonderfulLogUtils.logi("doOnTerminate", "doOnTerminate");
+            }
+        }).doFinally(new Action() {
+            @Override
+            public void run() throws Exception {
+                WonderfulLogUtils.logi("doFinally", "doFinally");
+            }
+        }).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG", integer + "");
+            }
+        });
+    结果：
+        I/doOnSubscribe: 我被订阅了
+        I/doOnEach: 1
+        I/doOnNext: 1
+        I/TAG: 1
+        I/doAfterNext: doAfterNext
+        I/doOnEach: 2
+        I/doOnNext: 2
+        I/TAG: 2
+        I/doAfterNext: doAfterNext
+        I/doOnEach: 3
+        I/doOnNext: 3
+        I/TAG: 3
+        I/doAfterNext: doAfterNext
+        I/doOnEach: null
+        I/doOnComplete: doOnComplete
+        I/doOnTerminate: doOnTerminate
+        I/doOnDispose: 被切断了
+        I/doFinally: doFinally
+    //TODO  materialize：将来自原始Observable的通知（onNext/onError/onComplete）都转换为一个Notification对象，然后再按原来的顺序一次发射出去。
+        Observable.just(1, 2, 3, 4, 5).materialize().subscribe(new Observer<Notification<Integer>>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+            }
+            @Override
+            public void onNext(Notification<Integer> value) {
+                WonderfulLogUtils.logi("TAG", "" + value.getValue());
+            }
+            @Override
+            public void onError(Throwable e) {
+            }
+            @Override
+            public void onComplete() {
+                WonderfulLogUtils.logi("TAG", "完成了！");
+            }
+        });
+    结果:1,2,3,4,5,null,完成了！
+    //TODO  Dematerialize：操作符是Materialize的逆向过程，它将Materialize转换的结果还原成它原本的形式（ 将Notification对象还原成Observable的通知）
+        Observable.just(1, 2, 3, 4, 5).materialize().dematerialize().subscribe(new Observer<Object>() {
+             @Override
+             public void onSubscribe(Disposable d) {
+             }
+             @Override
+             public void onNext(Object value) {
+                 WonderfulLogUtils.logi("TAG", value + "");
+             }
+             @Override
+             public void onError(Throwable e) {
+             }
+             @Override
+             public void onComplete() {
+                 WonderfulLogUtils.logi("TAG", "完成了！");
+             }
+         });
+         结果：1,2,3,4,5,完成了！
+    //TODO  ObserveOn：指定一个观察者在哪个调度器上观察这个Observable,多次调用，多次切换
+    //TODO  SubscribeOn：指定一个被观察者在哪个调度器上发起通知，多次调用仅第一次有用
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                WonderfulLogUtils.logi("TAG", Thread.currentThread().getName());
+                e.onNext(1);
+                e.onNext(2);
+                e.onNext(3);
+                e.onComplete();
+            }
+        }).subscribeOn(AndroidSchedulers.mainThread()).subscribeOn(Schedulers.io())
+                .observeOn(Schedulers.io()).observeOn(AndroidSchedulers.mainThread()).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer integer) throws Exception {
+                WonderfulLogUtils.logi("TAG", Thread.currentThread().getName());//main，main，main，main
+            }
+        });
+    //TODO  serialize：强制一个Observable连续调用并保证行为正确
+        一个Observable可以异步调用它的观察者的方法，可能是从不同的线程调用。这可能会让Observable行为不正确，
+        它可能会在某一个onNext调用之前尝试调用onCompleted或onError方法，或者从两个不同的线程同时调用onNext方法。
+        使用Serialize操作符，你可以纠正这个Observable的行为，保证它的行为是正确的且是同步的。
+
+    //TODO  subscribe：建立连接产生订阅关系
+
+    //TODO  TimeInterval：将一个发射数据的Observable转换为发射那些数据发射时间间隔的Observable
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                e.onNext(1);
+                Thread.sleep(200);
+                e.onNext(2);
+                Thread.sleep(300);
+                e.onNext(3);
+                Thread.sleep(400);
+                e.onComplete();
+            }
+        }).timeInterval().subscribe(new Observer<Timed<Integer>>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+
+            }
+
+            @Override
+            public void onNext(Timed<Integer> value) {
+                WonderfulLogUtils.logi("TAG", value.time() + "");
+            }
+
+            @Override
+            public void onError(Throwable e) {
+
+            }
+
+            @Override
+            public void onComplete() {
+                WonderfulLogUtils.logi("TAG", "完成了！");
+            }
+        });
+        //0,201,300，完成了！
+    //TODO  timeout：对原始Observable的一个镜像，如果过了一个指定的时长仍没有发射数据，它会发一个错误通知
+            第一个变体接受一个时长参数，每当原始Observable发射了一项数据，timeout就启动一个计时器，
+            如果计时器超过了指定指定的时长而原始Observable没有发射另一项数据，timeout就抛出TimeoutException，以一个错误通知终止Observable。
+                Observable.create(new ObservableOnSubscribe<Integer>() {
+                    @Override
+                    public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                        e.onNext(1);
+                        Thread.sleep(200);
+                        e.onNext(2);
+                        Thread.sleep(300);
+                        e.onNext(3);
+                        Thread.sleep(400);
+                        e.onComplete();
+                    }
+                }).timeout(299, TimeUnit.MILLISECONDS, Observable.just(-1)).subscribe(new Observer<Integer>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                    }
+                    @Override
+                    public void onNext(Integer value) {
+                        WonderfulLogUtils.logi("TAG", value + "");
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        WonderfulLogUtils.logi("TAG", "出错！");
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        WonderfulLogUtils.logi("TAG", "完成了！");
+                    }
+                });
+    //TODO  timeout(Fun,Fun)：timeout(Func1)变体在原Observable发送一个数据时，不是启动一个计时器，而是创建并返回一个_Observable,
+            若_Observable终止时，原Observable还没有发送数据，timeout就抛出TimeoutException，以一个错误通知终止Observable。
+            timeout(Func0,Func1)变体类似于timeout(Func1)，不同的是不会发送错误通知终止，而是重新订阅备用的Observable并发射其数据项。
+            Observable.create(new ObservableOnSubscribe<Integer>() {
+                @Override
+                public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                    e.onNext(1);
+                    Thread.sleep(200);
+                    e.onNext(2);
+                    Thread.sleep(300);
+                    e.onNext(3);
+                    Thread.sleep(400);
+                    e.onComplete();
+                }
+            }).timeout(new Function<Integer, ObservableSource<String>>() {
+                @Override
+                public ObservableSource<String> apply(Integer integer) throws Exception {
+                    return Observable.just("" + integer).delay(301, TimeUnit.MILLISECONDS);
+                }
+            }, Observable.just(-1)).subscribe(new Consumer<Integer>() {
+                @Override
+                public void accept(Integer integer) throws Exception {
+                    WonderfulLogUtils.logi("TAG", "" + integer);//1,2,3,-1
+                }
+            });
+    //TODO  timestamp：给Observable发射的数据项附加一个时间戳
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> e) throws Exception {
+                e.onNext(1);
+                Thread.sleep(200);
+                e.onNext(2);
+                Thread.sleep(300);
+                e.onNext(3);
+                Thread.sleep(400);
+                e.onComplete();
+            }
+        }).timestamp().subscribe(new Consumer<Timed<Integer>>() {
+            @Override
+            public void accept(Timed<Integer> integerTimed) throws Exception {
+                WonderfulLogUtils.logi("TAG", integerTimed.time() + "##" + integerTimed.value());
+            }
+        });//1512028853372##1,1512028853573##2,1512028853873##3
+    //TODO  using：创建一个只在Observable生命周期内存在的一次性资源
+        using操作符接受三个参数： 一个用户创建一次性资源的工厂函数     一个用于创建Observable的工厂函数    一个用于释放资源的函数
+        Observable.using(new Callable<User>() {
+            @Override
+            public User call() throws Exception {
+                return new User("1234");
+            }
+        }, new Function<User, ObservableSource<String>>() {
+            @Override
+            public ObservableSource<String> apply(User user) throws Exception {
+                return Observable.just(user.getToken());
+            }
+        }, new Consumer<User>() {
+            @Override
+            public void accept(User user) throws Exception {
+                user = null;
+                WonderfulLogUtils.logi("TAG", "用户对象被释放了！");
+            }
+        }).subscribe(new Consumer<String>() {
+            @Override
+            public void accept(String token) throws Exception {
+                WonderfulLogUtils.logi("TAG", token);
+            }
+        });//1234,用户对象被释放了！
+    //TODO  to：将Observable转换为另一个对象或数据结构
+    //TODO  getIterator：该操作符将Observable转换为一个Iterator，可以通过它迭代原始Observable发射的数据集。
+        只能用于BlockingObservable的子类，如果要使用该操作符，首先必须把原Observable转换为一个BlockingObservable。
+        //TODO ?????????????????????
+
+//////////////////////////////////////////////////////////TODO 条件和布尔操作///////////////////////////////////////////////
+
+    //TODO  all：判定是否Observable发射的所有数据都满足某个条件。 传递一个谓词函数给All操作符，这个函数接受原始Observable发射的数据，
+            根据计算返回一个布尔值。All返回一个只发射一个单个布尔值的Observable，如果原始Observable正常终止并且每一项数据都满足条件，
+            就返回true；如果原始Observable的任何一项数据不满足条件就返回False。
+        Observable.range(2, 6).all(new Predicate<Integer>() {
+            @Override
+            public boolean test(Integer integer) throws Exception {
+                return integer > 2;
+            }
+        }).subscribe(new Consumer<Boolean>() {
+            @Override
+            public void accept(Boolean aBoolean) throws Exception {
+                WonderfulLogUtils.logi("TAG", aBoolean.toString());//false
+            }
+        });
+    //TODO  amb：给定两个或多个Observables，它只发射首先发射数据或通知的那个Observable的所有数据
+        final Observable<String> ob1 = Observable.just("1").delay(10, TimeUnit.MILLISECONDS);
+        final Observable<String> ob2 = Observable.just("2");
+        ArrayList<Observable<String>> obs = new ArrayList<Observable<String>>() {{
+            add(ob1);
+            add(ob2);
+        }};
+        Observable.amb(obs).subscribe(new Consumer<String>() {
+            @Override
+            public void accept(String o) throws Exception {
+                WonderfulLogUtils.logi("TAG",o+"");//2,3
+            }
+        });
+        //TODO  或者
+            final Observable ob1 = Observable.just("1").delay(10, TimeUnit.MILLISECONDS);
+            final Observable ob2 = Observable.just("2", "3");
+            Observable.ambArray(ob1, ob2).subscribe(new Consumer<String>() {
+                @Override
+                public void accept(String o) throws Exception {
+                    WonderfulLogUtils.logi("TAG", o + "");
+                }
+            });
+    //TODO  contains：判定一个Observable是否发射一个特定的值
+        Observable.just(1, 2, 3, 4).contains(2).subscribe(new Consumer<Boolean>() {
+            @Override
+            public void accept(Boolean aBoolean) throws Exception {
+                WonderfulLogUtils.logi("TAG", "" + aBoolean);//true
+            }
+        });
+    //TODO  isEmpty：用于判定原始Observable是否没有发射任何数据。
+        Observable.range(1, 0).isEmpty().subscribe(new Consumer<Boolean>() {
+            @Override
+            public void accept(Boolean aBoolean) throws Exception {
+                WonderfulLogUtils.logi("TAG", "" + aBoolean);
+            }
+        });
+    //TODO  defaultIfEmpty：如果原Observable没有发射任何数据就发射默认数据
+        Observable.range(1, 0).defaultIfEmpty(2).subscribe(new Consumer<Integer>() {
+            @Override
+            public void accept(Integer aBoolean) throws Exception {
+                WonderfulLogUtils.logi("TAG", "" + aBoolean);
+            }
+        });//2
+    //TODO  sequenceEqual：传递两个Observable给SequenceEqual操作符，它会比较两个Observable的发射物，
+            如果两个序列是相同的（相同的数据，相同的顺序，相同的终止状态），它就发射true，否则发射false。
+        Observable.sequenceEqual(Observable.just(1, 2, 3), Observable.range(1, 3)).subscribe(new Consumer<Boolean>() {
+            @Override
+            public void accept(Boolean aBoolean) throws Exception {
+                WonderfulLogUtils.logi("TAG", "" + aBoolean);
+            }
+        });//true
+    //TODO  sequenceEqual:三个参数的，第三个参数可以自定义数据内容比较规则
+        Observable.sequenceEqual(Observable.just("1", "7", "3"), Observable.range(1, 3), new BiPredicate<Serializable, Serializable>() {
+            @Override
+            public boolean test(Serializable serializable, Serializable serializable2) throws Exception {
+                return true;
+            }
+        }).subscribe(new Consumer<Boolean>() {
+            @Override
+            public void accept(Boolean aBoolean) throws Exception {
+                WonderfulLogUtils.logi("TAG", "" + aBoolean);
+            }
+        });//true
+    //TODO  skipUntil：SkipUntil订阅原始的Observable，但是忽略它的发射物，直到第二个Observable发射了一项数据那一刻，它开始发射原始Observable
+        Observable.interval(200, TimeUnit.MILLISECONDS).take(10).skipUntil(Observable.just(-1).delay(1000, TimeUnit.MILLISECONDS)).subscribe(new Consumer<Long>() {
+            @Override
+            public void accept(Long aLong) throws Exception {
+                WonderfulLogUtils.logi("TAG", aLong + "");
+            }
+        });//4,5,6,7,8,9
+    //TODO  skipWhile：SkipWhile订阅原始的Observable，但是忽略它的发射物，直到你指定的某个条件变为false的那一刻，它开始发射原始Observable。
+        Observable.interval(200, TimeUnit.MILLISECONDS).take(10).skipWhile(new Predicate<Long>() {
+            @Override
+            public boolean test(Long aLong) throws Exception {
+                i++;
+                return i < 7;
+            }
+        }).subscribe(new Consumer<Long>() {
+            @Override
+            public void accept(Long aLong) throws Exception {
+                WonderfulLogUtils.logi("TAG", aLong + "");
+            }
+        });//6,7,8,9
+    //TODO  takeUntil：TakeUntil订阅并开始发射原始Observable，它还监视你提供的第二个Observable。
+            如果第二个Observable发射了一项数据或者发射了一个终止通知，TakeUntil返回的Observable会停止发射原始Observable并终止。
+            Observable.interval(200, TimeUnit.MILLISECONDS).take(5).takeUntil(Observable.just("3").delay(800, TimeUnit.MILLISECONDS))
+            .subscribe(new Observer<Long>() {
+                @Override
+                public void onSubscribe(Disposable d) {
+                }
+                @Override
+                public void onNext(Long value) {
+                    WonderfulLogUtils.logi("TAG", value + "");
+                }
+                @Override
+                public void onError(Throwable e) {
+                }
+                @Override
+                public void onComplete() {
+                    WonderfulLogUtils.logi("TAG", "结束了！");
+                }
+            });//0,1,2，结束了
+    //TODO  takeWhile：TakeWhile发射原始Observable，直到你指定的某个条件不成立的那一刻，它停止发射原始Observable，并终止自己的Observable。
+        Observable.interval(1000, TimeUnit.MILLISECONDS).take(10).takeWhile(new Predicate<Long>() {
+            @Override
+            public boolean test(Long aLong) throws Exception {
+                return aLong < 4L;
+            }
+        }).subscribe(new Consumer<Long>() {
+            @Override
+            public void accept(Long aLong) throws Exception {
+                WonderfulLogUtils.logi("TAG", aLong + "");
+            }
+        });//0,1,2,3
+
+
+//////////////////////////////////////////////////////////TODO 算数和聚合操作///////////////////////////////////////////////
+
+    //TODO  compile 'io.reactivex:rxjava-math:1.0.0'
+    //TODO  average：计算原始Observable发射数字的平均值并发射它 averageDouble, averageFloat, averageInteger, averageLong
+        RxJava2 用不了
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

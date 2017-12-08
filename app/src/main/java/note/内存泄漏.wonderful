@@ -1,0 +1,110 @@
+1.常见的内存泄漏
+   1.单例模式中，需要传入Context对象，这个对象不能用Activity，而应该使用Application的Context，单例的生命周期跟应用一样长，传入
+          activity对象的引用，将导致activity执行onDestory后，无法释放此对象！
+    实例写法：/******/
+        在你的 Application 中添加一个静态方法，getContext() 返回 Application 的 context，
+        context = getApplicationContext();
+         public static Context getContext(){
+            return context;
+         }
+         //////
+        public class AppManager {
+        private static AppManager instance;
+        private Context context;
+        private AppManager() {
+        this.context = MyApplication.getContext();// 使用Application 的context
+        }
+        public static AppManager getInstance() {
+        if (instance == null) {
+        instance = new AppManager();
+        }
+        return instance;
+        }
+        }
+   2.非静态内部类创建了静态的的实例，非静态内部类默认持有外部类的引用，而静态实例生命周期与应用相同，所以当外部Activity执行onDstory后，
+       静态内部类实例仍然持有外部类的引用，外部类无法被释放！
+   解决方法：将该内部类设为静态内部类或将该内部类抽取出来封装成一个单例
+   3.匿名内部类 匿名内部类默认持有外部类的引用，在Activity中如果将这个内部类实例，传入了异步线程，当此异步线程与Activity的生命周期不一致时
+      在异步线程中将会继续持有Activity的引用，导致activity无法被回收释放。
+   4.Handler 造成的内存泄漏  Handler属于TLS(Thread Local Storage(可以用于不同线程间的变量C语言底层定义)) 变量，Handler 的使用造成的内存泄漏问题
+       应该说是最为常见了，很多时候我们为了避免 ANR 而不在主线程进行耗时操作，在处理网络任务或者封装一些请求回调等api都借助Handler来处理，
+       但 Handler 不是万能的，对于 Handler 的使用代码编写一不规范即有可能造成内存泄漏。另外，我们知道 Handler、Message 和 MessageQueue
+       都是相互关联在一起的，万一 Handler 发送的 Message 尚未被处理，则该 Message 及发送它的 Handler 对象将被线程 MessageQueue 一直持有。
+       由于 Handler 属于 TLS(Thread Local Storage) 变量, 生命周期和 Activity 是不一致的。
+       因此这种实现方式一般很难保证跟 View 或者 Activity 的生命周期保持一致，故很容易导致无法正确释放。
+       例子：
+       public class SampleActivity extends Activity {
+           private final Handler mLeakyHandler = new Handler() {
+           @Override
+           public void handleMessage(Message msg) {
+             // ...
+           }
+           }
+           @Override
+           protected void onCreate(Bundle savedInstanceState) {
+           super.onCreate(savedInstanceState);
+           mLeakyHandler.postDelayed(new Runnable() {
+             @Override
+             public void run() { /* ... */ }
+           }, 1000 * 60 * 10);
+           finish();
+           }
+           }
+       分析：
+           在该 SampleActivity 中声明了一个延迟10分钟执行的消息 Message，mLeakyHandler 将其 push 进了消息队列 MessageQueue 里。
+           当该 Activity 被 finish() 掉时，延迟执行任务的 Message 还会继续存在于主线程中，它持有该 Activity 的 Handler 引用，
+           所以此时 finish() 掉的 Activity 就不会被回收了从而造成内存泄漏（因 Handler 为非静态内部类，它会持有外部类的引用，
+           在这里就是指 SampleActivity）。
+       修复方法：在 Activity 中避免使用非静态内部类，比如上面我们将 Handler 声明为静态的，则其存活期跟 Activity 的生命周期就无关了。
+       同时通过弱引用的方式引入 Activity，避免直接将 Activity 作为 context 传进去。
+       实例：
+        public class SampleActivity extends Activity {
+          private static class MyHandler extends Handler {
+          private final WeakReference<SampleActivity> mActivity;
+
+            public MyHandler(SampleActivity activity) {
+              mActivity = new WeakReference<SampleActivity>(activity);
+            }
+
+            @Override
+            public void handleMessage(Message msg) {
+              SampleActivity activity = mActivity.get();
+              if (activity != null) {//？？这样写 如果在if里面 activity 被回收了 是否会出现空指针异常？
+                // ...
+              }
+            }
+          }
+
+          private final MyHandler mHandler = new MyHandler(this);
+
+          /**
+           * Instances of anonymous classes do not hold an implicit
+           * reference to their outer class when they are "static".
+           */
+          private static final Runnable sRunnable = new Runnable() {
+              @Override
+              public void run() { /* ... */ }
+          };
+
+          @Override
+          protected void onCreate(Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+
+            // Post a message and delay its execution for 10 minutes.
+            mHandler.postDelayed(sRunnable, 1000 * 60 * 10);
+
+            // Go back to the previous Activity.
+            finish();
+          }
+        }
+    5.资源未关闭造成的内存泄漏 对于使用了BraodcastReceiver，ContentObserver，File，游标 Cursor，Stream，Bitmap等资源的使用，应该在Activity销毁时及时关闭或者注销，
+      否则这些资源将不会被回收，造成内存泄漏。
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,88 @@
+装饰者模式：装饰模式又名包装(Wrapper)模式。装饰模式以对客户端透明的方式扩展对象的功能，是继承关系的一个替代方案。
+            装饰模式可以在不使用创造更多子类的情况下，将对象的功能加以扩展。
+要点：装饰者与被装饰者拥有共同的超类，继承的目的是继承类型，而不是行为
+例子：现在需要一个汉堡，这个汉堡可以加生菜，加酱，辣椒等其他配料，而每增加一项可能会加价
+    1.抽象基类
+    public abstract class Humburger {
+        protected  String name ;
+        public String getName(){
+            return name;
+        }
+        public abstract double getPrice();
+    }
+    2.鸡腿汉堡，被装饰者的初始状态，有些自由的装饰（例如鸡腿）
+    public class ChickenBurger extends Humburger {
+        public ChickenBurger(){
+            name = "鸡腿堡";
+        }
+        @Override
+        public double getPrice() {
+            return 10;
+        }
+    }
+    3.配料基类，抽象配料 装饰者，用来对汉堡进行多层装饰，没层加一些配料
+    public abstract class Condiment extends Humburger {
+        public abstract String getName();
+    }
+    4.具体的装饰者  生菜
+        public class Lettuce extends Condiment {
+            Humburger humburger;
+            public Lettuce(Humburger humburger){
+                this.humburger = humburger;
+            }
+            @Override
+            public String getName() {
+                return humburger.getName()+" 加生菜";
+            }
+            @Override
+            public double getPrice() {
+                return humburger.getPrice()+1.5;
+            }
+        }
+    5.具体的装饰者  辣椒
+    public class Chilli extends Condiment {
+        Humburger humburger;
+        public Chilli(Humburger humburger){
+            this.humburger = humburger;
+        }
+        @Override
+        public String getName() {
+            return humburger.getName()+" 加辣椒";
+        }
+        @Override
+        public double getPrice() {
+            return humburger.getPrice();  //辣椒是免费的哦
+        }
+        public void color(int type){
+            System.out.println(type==1?"红辣椒":"青辣椒");
+        }
+    }
+    6.需要一个鸡腿堡加生菜加辣椒 计算价钱
+        Humburger chilli = new Chilli(new Lettuce(new ChickenBurger));
+        chilli.getPrice();
+        或者：我们想要一个鸡腿堡先加辣椒后加生菜
+        Humburger lettuce = new Lettuce( new Chilli( new ChickenBurger()));
+        lettuce.getPrice();
+
+透明性的要求:　装饰模式对客户端的透明性要求程序不要声明一个具体的基类类型的变量，而应当声明一个抽象的基类类型的变量。
+        例如：  ChickenBurger chickenBurger =  new ChickenBurger());  不合理
+                Humburger humburger =  new ChickenBurger());  合理
+半透明的装饰模式：然而，纯粹的装饰模式很难找到。装饰模式的用意是在不改变接口的前提下，增强所考虑的类的性能。在增强性能的时候，往往需要建立新的公开的方法。
+        这就导致了大多数的装饰模式的实现都是“半透明”的，而不是完全透明的。换言之，允许装饰模式改变接口，增加新的方法。
+        这意味着客户端可以声明具体装饰者类型的变量，从而可以调用具体装饰者类中才有的方法：
+        例如： Humburger humburger =  new ChickenBurger());
+               Chilli chilli = new Chilli();
+               chilli.color(1);
+
+
+
+
+
+
+
+
+
+
+
+
+

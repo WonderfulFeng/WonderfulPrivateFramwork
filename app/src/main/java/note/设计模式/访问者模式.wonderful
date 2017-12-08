@@ -1,0 +1,251 @@
+访问者模式：
+    访问者模式的目的是封装一些施加于某种数据结构元素之上的操作。一旦这些操作需要修改的话，
+    接受这个操作的数据结构则可以保持不变。
+一、分派的概念
+    静态类型：变量被声明时的类型叫做变量的静态类型，有些人又把静态类型叫做明显类型
+    实际类型：变量所引用的对象的真实类型又叫做变量的实际类型
+    分派: 根据对象的类型而对方法进行的选择
+    静态分派: 发生在编译时期，分派根据静态类型信息发生。静态分派对于我们来说并不陌生，方法重载就是静态分派。
+    动态分派：发生在运行时期，动态分派动态地置换掉某个方法。
+
+    静态分派:　Java通过方法重载支持静态分派。
+    示例：用墨子骑马的故事作为例子，墨子可以骑白马或者黑马
+        1.墨子骑马系统
+            public class Mozi {
+                public void ride(Horse h){
+                    System.out.println("骑马");
+                }
+                public void ride(WhiteHorse wh){
+                    System.out.println("骑白马");
+                }
+                public void ride(BlackHorse bh){
+                    System.out.println("骑黑马");
+                }
+                public static void main(String[] args) {
+                    Horse wh = new WhiteHorse();
+                    Horse bh = new BlackHorse();
+                    Mozi mozi = new Mozi();
+                    mozi.ride(wh);
+                    mozi.ride(bh);
+                }
+            }
+        结果：骑马
+              骑马
+        分析：两次对ride()方法的调用传入的是不同的参数，也就是wh和bh。
+              它们虽然具有不同的真实类型，但是它们的静态类型都是一样的，均是Horse类型。
+              重载方法的分派是根据静态类型进行的，这个分派过程在编译时期就完成了。
+    动态分派：java通过方法的重写支持动态分派
+    示例：用马吃草的故事作为例子
+        1.马类
+           public class Horse {
+               public void eat(){
+                   System.out.println("马吃草");
+               }
+           }
+        2.子类重写方法
+            public class BlackHorse extends Horse {
+                @Override
+                public void eat() {
+                    System.out.println("黑马吃草");
+                }
+            }
+        3.客户端调用
+            Horse h = new BlackHorse();
+            h.eat();
+        结果：黑马吃草
+        分析：问题的核心就是Java编译器在编译时期并不总是知道哪些代码会被执行，因为编译器仅仅知道对象的静态类型，
+              而不知道对象的真实类型；而方法的调用则是根据对象的真实类型，而不是静态类型。
+二、分派的类型
+    一个方法所属的对象叫做方法的接收者，方法的接收者与方法的参数统称做方法的宗量。
+    例如：
+        public class Test {
+               public void print(String str){
+                   System.out.println(str);
+               }
+        }
+    　在上面的类中，print()方法属于Test对象，所以它的接收者也就是Test对象了。print()方法有一个参数是str,它的类型是String。
+      根据分派可以基于多少种宗量，可以将面向对象的语言划分为单分派语言(Uni-Dispatch)和多分派语言(Multi-Dispatch)。
+      单分派语言:根据一个宗量的类型进行对方法的选择
+      多分派语言:根据多于一个的宗量的类型对方法进行选择
+      JAVA:
+            动态的单分派语言: 方法重写仅考虑方法的接收者  在一个支持动态单分派的语言里面，
+            有两个条件决定了一个请求会调用哪一个操作：一是请求的名字，而是接收者的真实类型。单分派限制了方法的选择过程，使得只有一个宗量可以被考虑到，这个宗量通常就是方法的接收者。
+            静态的多分派语言：因为这种语言对重载方法的分派会考虑到方法的接收者的类型以及方法的所有参数的类型。
+
+三、双重分配：一个方法根据两个宗量的类型来决定执行不同的代码，这就是“双重分派”
+    Java语言不支持动态的多分派，也就意味着Java不支持动态的双分派。但是通过使用设计模式，也可以在Java语言里实现动态的双重分派。
+    在Java中可以通过两次方法调用来达到两次分派的目的。
+    1.West类
+        public abstract class West {
+            public abstract void goWest1(SubEast1 east);
+            public abstract void goWest2(SubEast2 east);
+        }
+    2.SubWest1类
+        public class SubWest1 extends West{
+            @Override
+            public void goWest1(SubEast1 east) {
+                System.out.println("SubWest1 + " + east.myName1());
+            }
+            @Override
+            public void goWest2(SubEast2 east) {
+                System.out.println("SubWest1 + " + east.myName2());
+            }
+        }
+    3.SubWest2类
+        public class SubWest2 extends West{
+              @Override
+              public void goWest1(SubEast1 east) {
+                  System.out.println("SubWest2 + " + east.myName1());
+              }
+
+              @Override
+              public void goWest2(SubEast2 east) {
+                  System.out.println("SubWest2 + " + east.myName2());
+              }
+          }
+    4.East类
+        public abstract class East {
+            public abstract void goEast(West west);
+        }
+    5.SubEast1类
+        public class SubEast1 extends East{
+            @Override
+            public void goEast(West west) {
+                west.goWest1(this);
+            }
+            public String myName1(){
+                return "SubEast1";
+            }
+        }
+    6.SubEast2类
+        public class SubEast2 extends East{
+              @Override
+              public void goEast(West west) {
+                  west.goWest2(this);
+              }
+              public String myName2(){
+                  return "SubEast2";
+              }
+          }
+    7.客户端调用
+        //组合1
+        East east = new SubEast1();
+        West west = new SubWest1();
+        east.goEast(west);
+        //组合2
+        east = new SubEast1();
+        west = new SubWest2();
+        east.goEast(west);
+
+    结果：SubWest1 + SubEast1
+          SubWest2 + SubEast1
+    分析：系统运行时，会首先创建SubWest1和SubEast1对象，然后客户端调用SubEast1的goEast()方法，并将SubWest1对象传入。
+          由于SubEast1对象重写了其超类East的goEast()方法，因此，这个时候就发生了一次动态的单分派。当SubEast1对象接到调用时，
+          会从参数中得到SubWest1对象，所以它就立即调用这个对象的goWest1()方法，并将自己传入。
+          由于SubEast1对象有权选择调用哪一个对象，因此，在此时又进行一次动态的方法分派。
+       　 这个时候SubWest1对象就得到了SubEast1对象。通过调用这个对象myName1()方法，
+          就可以打印出自己的名字和SubEast对象的名字
+          由于这两个名字一个来自East等级结构，另一个来自West等级结构中，因此，它们的组合式是动态决定的。这就是动态双重分派的实现机制。
+四、访问者模式结构
+        访问者模式适用于数据结构相对未定的系统，它把数据结构和作用于结构上的操作之间的耦合解脱开，使得操作集合可以相对自由地演化。
+     1.抽象访问者角色
+         为每一个具体节点都准备了一个访问操作。由于有两个节点，因此，对应就有两个访问操作。
+         public interface Visitor {
+             /** 对应于NodeA的访问操作 */
+             public void visit(NodeA node);
+             /** 对应于NodeB的访问操作 */
+             public void visit(NodeB node);
+         }
+     2.具体访问者VisitorA类
+         实现抽象访问者所声明的接口，也就是抽象访问者所声明的各个访问操作。
+         public class VisitorA implements Visitor {
+             /**  对应于NodeA的访问操作 */
+             @Override
+             public void visit(NodeA node) {
+                 System.out.println(node.operationA());
+             }
+             /** 对应于NodeB的访问操作 */
+             @Override
+             public void visit(NodeB node) {
+                 System.out.println(node.operationB());
+             }
+         }
+     3.具体访问者VisitorB类
+        public class VisitorB implements Visitor {
+            /**  对应于NodeA的访问操作 */
+            @Override
+            public void visit(NodeA node) {
+                System.out.println(node.operationA());
+            }
+            /** 对应于NodeB的访问操作 */
+            @Override
+            public void visit(NodeB node) {
+                System.out.println(node.operationB());
+            }
+        }
+     4.抽象节点类  声明一个接受操作，接受一个访问者对象作为一个参数。
+           public abstract class Node {
+               /**  接受操作 */
+               public abstract void accept(Visitor visitor);
+           }
+     5.具体节点类NodeA
+        public class NodeA extends Node{
+            /** 接受操作 */
+            @Override
+            public void accept(Visitor visitor) {
+                visitor.visit(this);
+            }
+            /**  NodeA特有的方法 */
+            public String operationA(){
+                return "NodeA";
+            }
+        }
+     6.具体节点类NodeB
+     public class NodeB extends Node{
+           /** 接受方法 */
+           @Override
+           public void accept(Visitor visitor) {
+               visitor.visit(this);
+           }
+           /**  NodeB特有的方法 */
+           public String operationB(){
+               return "NodeB";
+           }
+       }
+     7.结构对象角色类
+           有如下的责任，可以遍历结构中的所有元素；如果需要，提供一个高层次的接口让访问者对象可以访问每一个元素；
+           如果需要，可以设计成一个复合对象或者一个聚集，如List或Set。
+         public class ObjectStructure {
+             private List<Node> nodes = new ArrayList<Node>();
+             /** 执行方法操作 */
+             public void action(Visitor visitor){
+                 for(Node node : nodes){
+                     node.accept(visitor);
+                 }
+             }
+             /**  添加一个新元素 */
+             public void add(Node node){
+                 nodes.add(node);
+             }
+         }
+     8.客户端调用
+            //创建一个结构对象
+            ObjectStructure os = new ObjectStructure();
+            //给结构增加一个节点
+            os.add(new NodeA());
+            //给结构增加一个节点
+            os.add(new NodeB());
+            //创建一个访问者
+            Visitor visitor = new VisitorA();
+            os.action(visitor);
+     虽然在这个示意性的实现里并没有出现一个复杂的具有多个树枝节点的对象树结构，但是，
+     在实际系统中访问者模式通常是用来处理复杂的对象树结构的，而且访问者模式可以用来处理跨越多个等级结构的树结构问题。
+     这正是访问者模式的功能强大之处。
+
+访问者模式的优点：
+    好的扩展性：能够在不修改对象结构中的元素的情况下，为对象结构中的元素添加新的功能。
+    好的复用性：可以通过访问者来定义整个对象结构通用的功能，从而提高复用程度。
+    分离无关行为：可以通过访问者来分离无关的行为，把相关的行为封装在一起，构成一个访问者，这样每一个访问者的功能都比较单一。
+访问者模式的缺点：
+    对象结构变化很困难：不适用于对象结构中的类经常变化的情况，因为对象结构发生了改变，访问者的接口和访问者的实现都要发生相应的改变，代价太高。
+    破坏封装：访问者模式通常需要对象结构开放内部数据给访问者和ObjectStructrue，这破坏了对象的封装性。

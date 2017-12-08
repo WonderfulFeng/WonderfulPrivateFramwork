@@ -1,0 +1,107 @@
+建造者模式：
+    有些情况下，一个对象会有一些重要的性质，在它们没有恰当的值之前，对象不能作为一个完整的产品使用。
+    比如，一个电子邮件有发件人地址、收件人地址、主题、内容、附录等部分，而在最起码的收件人地址得到赋值之前，这个电子邮件不能发送。
+    有些情况下，一个对象的一些性质必须按照某个顺序赋值才有意义。在某个性质没有赋值之前，另一个性质则无法赋值。
+    这些情况使得性质本身的建造涉及到复杂的商业逻辑。这时候，此对象相当于一个有待建造的产品，而对象的这些性质相当于产品的零件，
+    建造产品的过程是建造零件的过程。由于建造零件的过程很复杂，因此，这些零件的建造过程往往被“外部化”到另一个称做建造者的对象里，
+    建造者对象返还给客户端的是一个全部零件都建造完毕的产品对象。
+    建造模式利用一个导演者对象和具体建造者对象一个个地建造出所有的零件，从而建造出完整的产品对象。
+    建造者模式将产品的结构和产品的零件的建造过程对客户端隐藏起来，把对建造过程进行指挥的责任和具体建造者零件的责任分割开来，
+    达到责任划分和封装的目的。　
+   例如：一个对象有两部分组成，我们需要构建这两部分，从而生产出一个对象。
+   1.对象实体类
+       public class Product {
+           private String part1;
+           private String part2;
+           public String getPart1() {
+               return part1;
+           }
+           public void setPart1(String part1) {
+               this.part1 = part1;
+           }
+           public String getPart2() {
+               return part2;
+           }
+           public void setPart2(String part2) {
+               this.part2 = part2;
+           }
+       }
+   2.抽象建造者类Builder
+       public interface Builder {
+           public void buildPart1();
+           public void buildPart2();
+           public Product retrieveResult();
+       }
+   3.具体建造者类ConcreteBuilder
+        public class ConcreteBuilder implements Builder {
+            private Product product = new Product();
+            /** 产品零件建造方法1 */
+            @Override
+            public void buildPart1() {
+         　　　　product.setPart1("编号：9527");  //构建产品的第一个零件
+            }
+            /** 产品零件建造方法2 */
+            @Override
+            public void buildPart2() {
+         　　　　product.setPart2("名称：XXX"); //构建产品的第二个零件
+            }
+            /** 产品返还方法 */
+            @Override
+            public Product retrieveResult() {
+                return product;
+            }
+        }
+    4.导演者类Director
+        public class Director {
+            /** 持有当前需要使用的建造器对象 */
+            private Builder builder;
+            /** 构造方法，传入建造器对象 */
+            public Director(Builder builder){
+                this.builder = builder;
+            }
+            /** 产品构造方法，负责调用各个零件建造方法 */
+            public void construct(){
+                builder.buildPart1();
+                builder.buildPart2();
+            }
+        }
+    5.实际调用
+        Builder builder = new ConcreteBuilder();
+        Director director = new Director(builder);
+        director.construct();
+        Product product = builder.retrieveResult();
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,72 @@
+桥接模式：
+    由于实际的需要，某个类具有两个或两个以上的维度变化，如果只是用继承将无法实现这种需要，或者使得设计变得相当臃肿。
+    桥接模式的做法是把变化部分抽象出来，使变化部分与主类分离开来，从而将多个维度的变化彻底分离。
+    最后，提供一个管理类来组合不同维度上的变化，通过这种组合来满足业务的需要。
+例子：对于笔记本的CPU评测,当安装Intel CPU的时候 评测分数比较高,而安装AMD CPU的时候，则评测分数相对低一些,这个是一唯影响,而配合上电脑品牌,就是二维影响
+    1.Cpu种类规则接口
+    interface CpuAbility{
+       String abilityCpu();
+    }
+    2.amd的CPU
+     class AdmCpu implements CpuAbility{
+        public String abilityCpu() {
+             return "系能一般";
+        }
+     }
+    3.intel的Cpu
+      class IntelCpu implements CpuAbility{
+          public String abilityCpu() {
+              return "系能比较牛";
+          }
+      }
+    4.抽象管理类
+     abstract class AbstractComputer{
+         CpuAbility cpuAbility;
+         public AbstractComputer(CpuAbility cpuAbility){
+             this.cpuAbility=cpuAbility;
+         }
+         public abstract void checkPcAbility();
+     }
+    5.具体电脑品牌
+        1.联想
+     class LenevoComputer extends AbstractComputer{
+         public LenevoComputer(CpuAbility cpuAbility) {
+             super(cpuAbility);
+         }
+         @Override
+         public void checkPcAbility() {
+             System.out.println("联想笔记本CPU性能"+super.cpuAbility.abilityCpu());
+         }
+     }
+        2.IBM
+      class IswComputer extends AbstractComputer{
+          public IswComputer(CpuAbility cpuAbility) {
+              super(cpuAbility);
+          }
+          @Override
+          public void checkPcAbility() {
+              System.out.println("IBM笔记本CPU性能"+super.cpuAbility.abilityCpu());
+          }
+      }
+分析描述：通过对象组合的方式，Bridge 模式把两个角色之间的继承关系改为了耦合的关系，从而使这两者可以从容自若的各自独立的变化。
+          Bridge模式是构造型的设计模式之一。Bridge模式基于类的最小设计原则，通过使用封装，聚合以及继承等行为来让不同的类承担不同的责任。
+          它的主要特点是把抽象（abstraction）与行为实现（implementation）分离开来，从而可以保持各部分的独立性以及应对它们的功能扩展。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

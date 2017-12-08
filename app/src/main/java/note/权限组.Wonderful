@@ -1,0 +1,189 @@
+
+
+    <uses-permission android:name="android.permission.READ_CALENDAR"/>
+    <uses-permission android:name="android.permission.WRITE_CALENDAR"/>
+
+    <uses-permission android:name="android.permission.CAMERA"/>
+
+    <uses-permission android:name="android.permission.READ_CONTACTS"/>
+    <uses-permission android:name="android.permission.WRITE_CONTACTS"/>
+    <uses-permission android:name="android.permission.GET_ACCOUNTS"/>
+
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <uses-permission android:name="android.permission.CALL_PHONE"/>
+    <uses-permission android:name="android.permission.READ_CALL_LOG"/>
+    <uses-permission android:name="android.permission.WRITE_CALL_LOG"/>
+    <uses-permission android:name="android.permission.PROCESS_OUTGOING_CALLS"/>
+    <uses-permission android:name="android.permission.USE_SIP"/>
+
+    <uses-permission android:name="android.permission.BODY_SENSORS"/>
+
+    <uses-permission android:name="android.permission.SEND_SMS"/>
+    <uses-permission android:name="android.permission.RECEIVE_SMS"/>
+    <uses-permission android:name="android.permission.READ_SMS"/>
+    <uses-permission android:name="android.permission.RECEIVE_WAP_PUSH"/>
+    <uses-permission android:name="android.permission.RECEIVE_MMS"/>
+
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+
+GITHUB:https://github.com/yanzhenjie/AndPermission/blob/master/README-CN.md
+    注：主要思想 以权限组的方式申请权限
+    一：监听器模式：
+        1.权限申请
+               AndPermission.with(this)
+                            .requestCode(1)
+                            .permission(Permission.PHONE)
+                            .callback(listeners)
+                            .rationale(new RationaleListener() {
+                                @Override
+                                public void showRequestPermissionRationale(int requestCode, Rationale rationale) {
+                                    // 这里的对话框可以自定义，只要调用rationale.resume()就可以继续申请。
+                                    AndPermission.rationaleDialog(TestActivity.this, rationale).show();
+                                }
+                            }).start();
+        2.创建监听回调
+                    private PermissionListener listeners = new PermissionListener() {
+                        @Override
+                        public void onSucceed(int requestCode, @NonNull List<String> grantPermissions) {
+                            WonderfulToastUtils.showToast("成功！");
+                        }
+                        @Override
+                        public void onFailed(int requestCode, @NonNull List<String> deniedPermissions) {
+                            WonderfulToastUtils.showToast("失败！");
+                            //        // 用户否勾选了不再提示并且拒绝了权限，那么提示用户到设置中授权。
+                            if (AndPermission.hasAlwaysDeniedPermission(TestActivity.this, deniedPermissions)) {
+                                // 第一种：用默认的提示语。
+                //                AndPermission.defaultSettingDialog(TestActivity.this, 200).show();
+                //                 第二种：用自定义的提示语。
+                //                AndPermission.defaultSettingDialog(TestActivity.this, 200)
+                //                        .setTitle("权限申请失败")
+                //                        .setMessage("我们需要的一些权限被您拒绝或者系统发生错误申请失败，请您到设置页面手动授权，否则功能无法正常使用！")
+                //                        .setPositiveButton("好，去设置")
+                //                        .show();
+                //            第三种：自定义dialog样式。
+                                final SettingService settingService = AndPermission.defineSettingDialog(TestActivity.this, 200);
+                                new AlertDialog.Builder(TestActivity.this).setMessage("被你拒绝了！").setNegativeButton("NO", null).setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        settingService.execute();
+                                    }
+                                }).create().show();
+                //            你的dialog点击了确定调用：
+                //                settingService.execute();
+                //            你的dialog点击了取消调用：
+                //                settingService.cancel();
+                            }
+                        }
+                    };
+        3.重写OnActiivtyResult方法,执行从设置回来后的操作：
+                  @Override
+                    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+                        switch (requestCode) {
+                            case 200: {
+                                AndPermission.with(this).requestCode(1).permission(Permission.PHONE).callback(listeners).rationale(new RationaleListener() {
+                                    @Override
+                                    public void showRequestPermissionRationale(int requestCode, Rationale rationale) {
+                                        // 这里的对话框可以自定义，只要调用rationale.resume()就可以继续申请。
+                                        AndPermission.rationaleDialog(TestActivity.this, rationale).show();
+                                    }
+                                }).start();
+                                break;
+                            }
+                        }
+                    }
+     二：注解模式：
+        1.同监听器模式
+        2.注解式回调：
+            @PermissionYes(1)
+            private void getPhonePermissionSuccess(@NonNull List<String> grantedPermissions) {
+                try {
+                    WonderfulToastUtils.showToast("权限成功：" + grantedPermissions.toString());
+                    Intent intent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + "17702727379"));
+                    startActivity(intent);
+                } catch (SecurityException ex) {
+                    ex.printStackTrace();
+                }
+
+            }
+            @PermissionNo(1)
+            private void getPhonePermissionFail(@NonNull List<String> deniedPermissions) {
+                Toast.makeText(this, "拒绝了", Toast.LENGTH_SHORT).show();
+                // 用户否勾选了不再提示并且拒绝了权限，那么提示用户到设置中授权。
+                if (AndPermission.hasAlwaysDeniedPermission(this, deniedPermissions)) {
+                    // 第一种：用默认的提示语。
+                    AndPermission.defaultSettingDialog(this, 200).show();
+                    // 第二种：用自定义的提示语。
+        //             AndPermission.defaultSettingDialog(this, REQUEST_CODE_SETTING)
+        //                     .setTitle("权限申请失败")
+        //                     .setMessage("我们需要的一些权限被您拒绝或者系统发生错误申请失败，请您到设置页面手动授权，否则功能无法正常使用！")
+        //                     .setPositiveButton("好，去设置")
+        //                     .show();
+        //            第三种：自定义dialog样式。
+        //            SettingService settingService = AndPermission.defineSettingDialog(this, REQUEST_CODE_SETTING);
+        //            你的dialog点击了确定调用：
+        //            settingService.execute();
+        //            你的dialog点击了取消调用：
+        //            settingService.cancel();
+                }
+            }
+        3.同监听式回调
+     三：任何地方调用 权限申请
+        1.新建PermissionRequest匿名内部类对象
+              permissionRequest = new PermissionRequest(this, new PermissionRequest.PermissionCallback() {
+                        @Override
+                        public void onSuccessful() {
+                            Toast.makeText(AnyWhereActivity.this, R.string.successfully, Toast.LENGTH_LONG).show();
+                        }
+                        @Override
+                        public void onFailure() {
+                            Toast.makeText(AnyWhereActivity.this, R.string.failure, Toast.LENGTH_LONG).show();
+                        }
+                    });
+        2.开始请求
+            permissionRequest.request();
+
+     四:自定义rationaleDialog
+        1.申请权限
+            AndPermission.with(RationaleActivity.this)
+                            .requestCode(REQUEST_CODE_PERMISSION)
+                            .permission(Permission.SENSORS)
+                            .callback(permissionListener)
+                            // rationale作用是：用户拒绝一次权限，再次申请时先征求用户同意，再打开授权对话框；
+                            // 这样避免用户勾选不再提示，导致以后无法申请权限。
+                            // 你也可以不设置。
+                            .rationale(rationaleListener)
+                            .start();
+        2.自定义rationaleDialog类
+                private RationaleListener rationaleListener = new RationaleListener() {
+                    @Override
+                    public void showRequestPermissionRationale(int requestCode, final Rationale rationale) {
+                        // 这里使用自定义对话框，如果不想自定义，用AndPermission默认对话框：
+                        // AndPermission.rationaleDialog(Context, Rationale).show();
+
+                        // 自定义对话框。
+                        AlertDialog.newBuilder(RationaleActivity.this)
+                                .setTitle(R.string.title_dialog)
+                                .setMessage(R.string.message_permission_failed)
+                                .setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.cancel();
+                                        rationale.resume();
+                                    }
+                                })
+                                .setNegativeButton(R.string.no, new DialogInterface.OnClickListener() {
+                                    @Override
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.cancel();
+                                        rationale.cancel();
+                                    }
+                                }).show();
+                    }
+                };
+

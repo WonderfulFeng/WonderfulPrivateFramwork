@@ -1,0 +1,174 @@
+工厂模式：属性对象  系列对象
+
+1.简单工厂模式
+    使用场景：当需要完成一种功能，这个功能需要两种对象协作才能完成（这两种对象之间不需要有关联），
+    而这两种对象又有多种种类即多种实例，此时便可采用简单工厂模式。
+    例如：组装电脑需要Cpu 和 MainBoard 两个对象，而Cpu种类很多，MainBoard种类也很多，此时要想组装电脑，看看简单工厂如何实现：
+       1.Cpu抽象接口：
+            public interface Cpu {
+                public void calculate();
+            }
+       2.Intel的CPU实体类：
+            public class IntelCpu implements Cpu {
+                /**
+                 * CPU的针脚数
+                 */
+                private int pins = 0;
+                public  IntelCpu(int pins){
+                    this.pins = pins;
+                }
+                @Override
+                public void calculate() {
+                    System.out.println("Intel CPU的针脚数：" + pins);
+                }
+            }
+        3.Amd的CPU实体类：
+            public class AmdCpu implements Cpu {
+                  /**
+                   * CPU的针脚数
+                   */
+                  private int pins = 0;
+                  public  AmdCpu(int pins){
+                      this.pins = pins;
+                  }
+                  @Override
+                  public void calculate() {
+                      System.out.println("AMD CPU的针脚数：" + pins);
+                  }
+              }
+            4.CPU工厂
+                public class CpuFactory {
+                    public static Cpu createCpu(int type){
+                        Cpu cpu = null;
+                        if(type == 1){
+                            cpu = new IntelCpu(755);//制造一个Intel的Cpu
+                        }else if(type == 2){
+                            cpu = new AmdCpu(938);//制造一个Amd的Cpu
+                        }
+                        return cpu;
+                    }
+                }
+            5.同理
+                  // MainBoard的抽象接口
+                  public interface MainBoard {
+                      public void calculate();
+                   }
+                  // Intel的MainBoard实体类：
+                    public class IntelMainboard implements Mainboard {
+                        /**
+                         * CPU插槽的孔数
+                         */
+                        private int cpuHoles = 0;
+                        public IntelMainboard(int cpuHoles){
+                            this.cpuHoles = cpuHoles;
+                        }
+                        @Override
+                        public void installCPU() {
+                            System.out.println("Intel主板的CPU插槽孔数是：" + cpuHoles);
+                        }
+                    }
+                   // Amd的MainBoard实体类：
+                    public class AmdMainboard implements Mainboard {
+                        /**
+                         * CPU插槽的孔数
+                         */
+                        private int cpuHoles = 0;
+                        public AmdMainboard(int cpuHoles){
+                            this.cpuHoles = cpuHoles;
+                        }
+                        @Override
+                        public void installCPU() {
+                            System.out.println("AMD主板的CPU插槽孔数是：" + cpuHoles);
+                        }
+                    }
+                   //MainBoard工厂
+                    public class MainboardFactory {
+                        public static Mainboard createMainboard(int type){
+                            Mainboard mainboard = null;
+                            if(type == 1){
+                                mainboard = new IntelMainboard(755);//制造一个Intel的MainBoard
+                            }else if(type == 2){
+                                mainboard = new AmdMainboard(938);//制造一个Amd的MainBoard
+                            }
+                            return mainboard;
+                        }
+                    }
+                   6.开始组装电脑 组装类 Assemble
+                    public class ComputerEngineer {
+                        /**
+                         * 组装机需要的CPU
+                         */
+                        private Cpu cpu = null;
+                        /**
+                         * 组装机需要的主板
+                         */
+                        private Mainboard mainboard = null;
+                        /*
+                         * 组装的方法
+                         */
+                        public void makeComputer(int cpuType , int mainboard){
+                            //1:首先准备好装机所需要的配件
+                            this.cpu = CpuFactory.createCpu(cpuType);
+                            this.mainboard = MainboardFactory.createMainboard(mainboard);
+                            //2:发起组装
+                            this.cpu.calculate();
+                            this.mainboard.installCPU();
+                        }
+                    }
+2.抽象工厂模式
+    使用场景：当我们需要一个系列的对象时，我们就可以使用抽象工厂。一个系列就是指：比如我们需要配置一台IntelCPU的电脑，
+    这个时候就必须要求我们的照顾白也是Intel的主板MainBoard
+    例如：我们组装电脑 我们希望当采用Intel的Cpu时必须也必须采用Intel的MainBoard 采用Amd的CPU时也必须采用Amd的MainBoard
+          看看抽象工厂如何实现：
+     1.新建抽象工厂
+        public interface AbstractFactory {
+            /**
+             * 创建CPU对象
+             */
+            public Cpu createCpu();
+            /**
+             * 创建主板对象
+             */
+            public Mainboard createMainboard();
+        }
+      2.新建Intel系列的工厂对象：
+        public class IntelFactory implements AbstractFactory {
+            @Override
+            public Cpu createCpu() {
+                return new IntelCpu(755);
+            }
+            @Override
+            public Mainboard createMainboard() {
+                return new IntelMainboard(755);
+            }
+        }
+      3.新建Amd系列的工厂对象：
+        public class AmdFactory implements AbstractFactory {
+            @Override
+            public Cpu createCpu() {
+                return new IntelCpu(938);
+            }
+            @Override
+            public Mainboard createMainboard() {
+                return new IntelMainboard(938);
+            }
+        }
+       4.开始组装某一系列的电脑
+            public class ComputerEngineer {
+                private Cpu cpu = null;
+                private Mainboard mainboard = null;
+                public void makeComputer(int type){
+                    //1.创建工厂的实例
+                    AbstractFactory af = null;
+                    if(type ==1) af = new IntelFactory();
+                    else af =  new AmdFactory();
+                    //2:准备好装机所需要的配件
+                   this.cpu = af.createCpu();
+                   this.mainboard = af.createMainboard();
+                    //3:发起组装
+                   this.cpu.calculate();
+                   this.mainboard.installCPU();
+                }
+            }
+3.抽象工厂的优点：当我们需要的对象是一个系列对象,并且可能有多个系列时，采用可以很方便的切换我们想要的系列
+4.抽象工厂的缺点：当我们为这个系列添加属性对象时，就要修改抽象工厂，从而所有的工厂实现类都要改动。

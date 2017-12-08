@@ -1,0 +1,72 @@
+对于面向 Android 7.0 的应用，Android 框架执行的 StrictMode API 政策禁止在您的应用外部公开 file:// URI。
+如果一项包含文件 URI 的 intent 离开您的应用，则应用出现故障，并出现 FileUriExposedException 异常。
+
+Android 7.0增加对权限的修改：
+    1.APP应用程序的私有文件不再向使用者放宽（仍然 不需要声明权限和权限申请，但是为了兼容4.4以下版本 还是要声明）
+    2.Intent组件传递file://URI的方式可能给接收器留下无法访问的路径，触发FileUriExposedException异常，推荐使用FileProvider
+    3.DownloadManager不再按文件名分享私人存储的文件。旧版应用在访问COLUMN_LOCAL_FILENAME时可能出现无法访问的路径。
+      面向 Android 7.0 或更高版本的应用在尝试访问 COLUMN_LOCAL_FILENAME 时会触发 SecurityException
+解决方案：（在需要用到ImageUri的地方使用）
+    一：不需要额外添加权限
+       1.在创建Uri对象时：
+          if (Build.VERSION.SDK_INT >= 24) {
+                    imageUri = FileProvider.getUriForFile(this, "com.example.administrator.myprivateframework.fileprovider", file);
+                } else {
+                    imageUri = Uri.fromFile(file);//兼容4.4（包含）以下
+                }
+       2.在清单文件中声明FileProvider
+              <provider
+                        android:name="android.support.v4.content.FileProvider"
+                        android:authorities="com.example.administrator.myprivateframework.fileprovider"
+                        android:enabled="true"
+                        android:exported="false"//该值必须为false
+                        android:grantUriPermissions="true">//该值必须为true
+                        <meta-data
+                            android:name="android.support.FILE_PROVIDER_PATHS"//该值固定
+                            android:resource="@xml/file_paths" />//对应的xml文件
+                    </provider>
+       3.在res下新建xml目录新建file_paths.xml文件
+              <?xml version="1.0" encoding="utf-8"?>
+              <paths xmlns:android="http://schemas.android.com/apk/res/android">
+                  <external-path name="myImage" path="" />
+              </paths>
+
+        ///标签说明：
+                <root-path name="root" path="" />//代表设备的根目录new File("/");
+
+                <external-path name="external" path="" />//该方式提供在外部存储区域根目录下的文件。它对应Environment.getExternalStorageDirectory返回的路径：eg:”/storage/emulated/0”;
+
+                <files-path name="files" path="" /> //该方式提供在应用的内部存储区的文件/子目录的文件。它对应Context.getFilesDir返回的路径：eg:”/data/data/com.jph.simple/files”。
+
+                <cache-path name="cache" path="" />//该方式提供在应用的内部存储区的缓存子目录的文件。它对应getCacheDir返回的路径：eg:“/data/data/com.jph.simple/cache”；
+
+                <external-files-path name="external_file_path" path="" />//该方式提供在应用的外部存储区根目录的下的文件。它对应Context#getExternalFilesDir(String)
+                                                                         //Context.getExternalFilesDir(null)返回的路径。eg:”/storage/emulated/0/Android/data/com.jph.simple/files”。
+
+                <external-cache-path name="external_cache_path" path="" />//该方式提供在应用的外部缓存区根目录的文件。它对应Context.getExternalCacheDir()返回的路径。
+                                                                          //eg:”/storage/emulated/0/Android/data/com.jph.simple/cache”。
+    二：需要额外添加权限（比如安装APK）
+        1.创建Uri对象和构建Intent
+              File file = new File(Environment.getExternalStorageDirectory(), "app_realease.apk");
+                Intent intent = new Intent(Intent.ACTION_VIEW);
+                Uri fileUri = "";
+                if (Build.VERSION.SDK_INT >= 24) {
+                    fileUri = FileProvider.getUriForFile(this, "com.zhy.android7.fileprovider", file);
+                } else {
+                    fileUri = Uri.fromFile(file);
+                }
+                intent.setDataAndType(fileUri,"application/vnd.android.package-archive");
+                intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                startActivity(intent);
+        2.同一
+        3.同一
+第三方库：GITHUB：https://github.com/hongyangAndroid/FitAndroid7
+        1.添加依赖
+        compile 'com.zhy.base:fileprovider:1.0.0'
+        2.一般的Uri
+        Uri fileUri = FileProvider7.getUriForFile(this, file);
+        3.需要添加权限的Intent
+         FileProvider7.setIntentDataAndType(this,intent, "application/vnd.android.package-archive", file, true);
+
+
+

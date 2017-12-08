@@ -1,0 +1,85 @@
+组合模式：
+    将对象组合成树形结构以表示‘部分-整体’的层次结构。组合模式使得用户对单个对象和组合对象的使用具有一致性。
+示例:
+    1.定义通用方法规则的抽象类
+     public abstract class Component {
+            String name;
+            public abstract void add(Component c);
+            public abstract void remove(Component c);
+            public abstract void eachChild();
+     }
+     2.具体的叶子节点 --部件
+     public class Leaf extends Component {
+          @Override
+          public void add(Component c) {
+              System.out.println("");   // 叶子节点不具备添加的能力，所以不实现
+          }
+          @Override
+          public void remove(Component c) {
+              System.out.println("");// 叶子节点不具备添加的能力必然也不能删除
+          }
+          // 叶子节点没有子节点所以显示自己的执行结果
+          @Override
+          public void eachChild() {
+              System.out.println(name + "执行了");
+          }
+      }
+     3.组合类   --树枝节点
+          public class Composite extends Component {
+              /** 用来保存节点的子节点 */
+              List<Component> list = new ArrayList<Component>();
+              @Override
+              public void add(Component c) {
+                  list.add(c);     // 添加节点 添加部件
+              }
+              @Override
+              public void remove(Component c) {
+                  list.remove(c);  // 删除节点 删除部件
+              }
+              @Override
+              public void eachChild() {
+                  System.out.println(name + "执行了");
+                  for (Component c : list) {  // 遍历子节点
+                      c.eachChild();
+                  }
+              }
+          }
+     4.程序运用
+      // 构造根节点
+      Composite root = new Composite();
+      root.name = "根节点";
+
+      // 构建右节点，添加两个叶子几点，也就是子部件
+      Composite right = new Composite();
+      right.name = "右节点";
+      Leaf leaf1 = new Leaf();
+      leaf1.name = "右-子节点1";
+      Leaf leaf2 = new Leaf();
+      leaf2.name = "右-子节点2";
+      right.add(leaf1);
+      right.add(leaf2);
+      // 左节点
+      Composite left = demo.new Composite();
+      left.name = "左节点";
+      // 左右节点加入 根节点
+      root.add(right);
+      root.add(left);
+      // 遍历组合部件
+      root.eachChild();
+    输出：根节点执行了  右节点执行了 右-子节点1执行了  右-子节点2执行了  左节点执行了
+使用场景：
+    当发现需求中是体现部分与整体层次结构时，以及你希望用户可以忽略组合对象与单个对象的不同，
+    统一地使用组合结构中的所有对象时，就应该考虑组合模式了。
+
+
+
+
+
+
+
+
+
+
+
+
+

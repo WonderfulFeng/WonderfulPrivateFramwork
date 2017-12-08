@@ -1,0 +1,67 @@
+apply plugin: 'com.android.application'
+//apply plugin: 'com.jakewharton.butterknife'
+
+android {
+    compileSdkVersion 25
+    buildToolsVersion "26.0.1"
+    defaultConfig {
+        applicationId "com.example.administrator.myprivateframework"
+        minSdkVersion 17
+        targetSdkVersion 25
+        versionCode 1
+        versionName "1.0"
+        testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
+    }
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+repositories {
+    flatDir {
+        dirs 'libs'
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    androidTestCompile('com.android.support.test.espresso:espresso-core:2.2.2', {
+        exclude group: 'com.android.support', module: 'support-annotations'
+    })
+    //获取主色调
+    //BRVAH 快速RecyclerViewAdapter
+//    compile 'com.github.Jay-Goo:AndroidMP3Recorder:v1.0.7'   //MP3 录音工具
+    //Vollery网络请求框架
+    //6.0权限申请
+    //7.0权限更改
+    //ImmersionBar沉浸式状态栏
+    //图片加载框架
+    //图片变换
+    //注解式
+    // 图片裁剪库
+//    compile 'com.jph.takephoto:takephoto_library:4.0.3'//头像选取库
+    //注解式
+    compile(name: 'smartcropperlib-1.1.0', ext: 'aar')
+    compile 'com.android.support:appcompat-v7:25.3.1'
+    compile 'com.android.support:cardview-v7:25.3.1'
+    compile 'com.android.support:palette-v7:25.3.1'
+    compile 'com.android.support.constraint:constraint-layout:1.0.2'
+    compile 'com.github.CymChad:BaseRecyclerViewAdapterHelper:2.9.25'
+    compile 'com.mcxiaoke.volley:library:1.0.19'
+    compile 'com.yanzhenjie:permission:1.1.0'
+    compile 'com.zhy.base:fileprovider:1.0.0'
+    compile 'com.gyf.barlibrary:barlibrary:2.2.2'
+    compile 'com.github.bumptech.glide:glide:3.7.0'
+    compile 'jp.wasabeef:glide-transformations:2.0.2'
+    compile 'com.jakewharton:butterknife:8.8.1'
+    compile 'com.github.yalantis:ucrop:2.2.1'
+    testCompile 'junit:junit:4.12'
+    annotationProcessor 'com.jakewharton:butterknife-compiler:8.8.1'
+    compile 'io.reactivex.rxjava2:rxjava:2.0.1'
+    compile 'io.reactivex.rxjava2:rxandroid:2.0.1'
+    compile 'com.squareup.retrofit2:retrofit:2.3.0'
+    compile 'com.squareup.retrofit2:converter-gson:2.3.0'
+
+}

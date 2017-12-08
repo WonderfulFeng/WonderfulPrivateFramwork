@@ -1,0 +1,101 @@
+工厂方法模式：
+    使用场景：当我们需要的属性对象，又有多种种类时，就可以使用工厂方法模式
+    例如： 我们导出文件时，可以导出PDF、Html等格式的，并且如果是PDF或是Html的又因为阅读文件的人群不一样，又可以分为企业版和大众版。
+    1.属性对象工厂接口 （内部有一个根据种类产生不同属性对象实例的抽象方法）
+        public interface ExportFactory {
+            public ExportFile factory(String type);
+        }
+    2.Html格式工厂
+        public class ExportHtmlFactory implements ExportFactory{
+              @Override
+              public ExportFile factory(String type) {
+                  if("standard".equals(type)){
+                      return new ExportStandardHtmlFile(); //企业版Html
+                  }else if("financial".equals(type)){
+                      return new ExportFinancialHtmlFile();//大众版Html
+                  }else{
+                      throw new RuntimeException("没有找到对象");
+                  }
+              }
+          }
+    3.PDF 格式工厂
+         public class ExportPdfFactory implements ExportFactory {
+             @Override
+             public ExportFile factory(String type) {
+                 if("standard".equals(type)){
+                     return new ExportStandardPdfFile();//企业版Pdf
+                 }else if("financial".equals(type)){
+                     return new ExportFinancialPdfFile();//大众版pdf
+                 }else{
+                     throw new RuntimeException("没有找到对象");
+                 }
+             }
+         }
+    4.属性对象种类的共有方法接口  导出方法
+          public interface ExportFile {
+              public boolean export(String data);
+          }
+    6.具体的导出种类（代码逻辑在这里写）
+            《1》//////////////////////
+          public class ExportFinancialHtmlFile implements ExportFile{
+              @Override
+              public boolean export(String data) {
+                  System.out.println("导出大众版HTML文件");
+                  return true;
+              }
+          }
+            《2》//////////////////////
+          public class ExportStandardHtmlFile implements ExportFile{
+              @Override
+              public boolean export(String data) {
+                  System.out.println("导出标准HTML文件");
+                  return true;
+              }
+          }
+            《3》//////////////////////
+          public class ExportStandardPdfFile implements ExportFile {
+              @Override
+              public boolean export(String data) {
+                  System.out.println("导出标准PDF文件");
+                  return true;
+              }
+          }
+            《4》//////////////////////
+           public class ExportFinancialPdfFile implements ExportFile{
+               @Override
+               public boolean export(String data) {
+                   System.out.println("导出大众版PDF文件");
+                   return true;
+               }
+           }
+          7.使用示例
+               String data = " I am export data ！";
+               ExportFactory exportFactory = new ExportHtmlFactory();
+               ExportFile ef = exportFactory.factory("financial");
+               ef.export(data);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

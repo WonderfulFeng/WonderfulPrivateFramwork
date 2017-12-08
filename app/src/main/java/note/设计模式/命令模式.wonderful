@@ -1,0 +1,163 @@
+命令模式：
+    命令模式把一个请求或者操作封装到一个对象中。命令模式允许系统使用不同的请求把客户端参数化，
+    对请求排队或者记录请求日志，可以提供命令的撤销和恢复功能。
+优点：1.命令模式使新的命令很容易地被加入到系统里。
+      2.允许接收请求的一方决定是否要否决请求。
+      3.能较容易地设计一个命令队列。
+      4.可以容易地实现对请求的撤销和恢复。
+      5.在需要的情况下，可以较容易地将命令记入日志。
+五个角色:示例:录音机的播放 倒带 停止 功能
+      1.接收者 录音机
+      public class AudioPlayer {
+          public void play(){
+              System.out.println("播放...");
+          }
+          public void rewind(){
+              System.out.println("倒带...");
+          }
+          public void stop(){
+              System.out.println("停止...");
+          }
+      }
+      2.抽象命令角色
+        public interface Command {
+            /** 执行方法 */
+            public void execute();
+        }
+       3.具体命令角色
+          --》播放
+        public class PlayCommand implements Command {
+            private AudioPlayer myAudio;
+            public PlayCommand(AudioPlayer audioPlayer){
+                myAudio = audioPlayer;
+            }
+            /** 执行方法 */
+            @Override
+            public void execute() {
+                myAudio.play();
+            }
+        }
+         --》倒带
+        public class RewindCommand implements Command {
+            private AudioPlayer myAudio;
+            public RewindCommand(AudioPlayer audioPlayer){
+                myAudio = audioPlayer;
+            }
+            @Override
+            public void execute() {
+                myAudio.rewind();
+            }
+        }
+          --》暂停
+        public class StopCommand implements Command {
+            private AudioPlayer myAudio;
+            public StopCommand(AudioPlayer audioPlayer){
+                myAudio = audioPlayer;
+            }
+            @Override
+            public void execute() {
+                myAudio.stop();
+            }
+        }
+      4.请求者角色  键盘
+        public class Keypad {
+            private Command playCommand;
+            private Command rewindCommand;
+            private Command stopCommand;
+            public void setPlayCommand(Command playCommand) {
+                this.playCommand = playCommand;
+            }
+            public void setRewindCommand(Command rewindCommand) {
+                this.rewindCommand = rewindCommand;
+            }
+            public void setStopCommand(Command stopCommand) {
+                this.stopCommand = stopCommand;
+            }
+            /** 执行播放方法 */
+            public void play(){
+                playCommand.execute();
+            }
+            /** 执行倒带方法 */
+            public void rewind(){
+                rewindCommand.execute();
+            }
+            /** 执行播放方法 */
+            public void stop(){
+                stopCommand.execute();
+            }
+        }
+      5.客户端调用
+        //创建接收者对象
+        AudioPlayer audioPlayer = new AudioPlayer();
+        //创建命令对象
+        Command playCommand = new PlayCommand(audioPlayer);
+        Command rewindCommand = new RewindCommand(audioPlayer);
+        Command stopCommand = new StopCommand(audioPlayer);
+        //创建请求者对象
+        Keypad keypad = new Keypad();
+        keypad.setPlayCommand(playCommand);
+        keypad.setRewindCommand(rewindCommand);
+        keypad.setStopCommand(stopCommand);
+        //测试
+        keypad.play();
+        keypad.rewind();
+        keypad.stop();
+        keypad.play();
+        keypad.stop();
+二、宏命令  包含多个命令的命令组合
+      示例：录音机需要一个记录功能，可以把一个个命令记录下来，在任何需要的时候重新把这些命令一次性执行。
+      1.需要一个代表宏命令的接口
+        public interface MacroCommand extends Command {
+            /**宏命令聚集的管理方法 可以添加一个成员命令*/
+            public void add(Command cmd);
+            /** 宏命令聚集的管理方法 可以删除一个成员命令*/
+            public void remove(Command cmd);
+        }
+      2.具体的宏命令   负责把个别的命令合成宏命令
+        public class MacroAudioCommand implements MacroCommand {
+            private List<Command> commandList = new ArrayList<Command>();
+            /** 宏命令聚集管理方法 */
+            @Override
+            public void add(Command cmd) {
+                commandList.add(cmd);
+            }
+            /** 宏命令聚集管理方法 */
+            @Override
+            public void remove(Command cmd) {
+                commandList.remove(cmd);
+            }
+            /**  执行方法 */
+            @Override
+            public void execute() {
+                for(Command cmd : commandList){
+                    cmd.execute();
+                }
+            }
+        }
+      3.客户端调用
+            //创建接收者对象
+            AudioPlayer audioPlayer = new AudioPlayer();
+            //创建具体命令对象
+            Command playCommand = new PlayCommand(audioPlayer);
+            Command rewindCommand = new RewindCommand(audioPlayer);
+            Command stopCommand = new StopCommand(audioPlayer);
+            //创建宏命令对象
+            MacroCommand marco = new MacroAudioCommand();
+            //添加
+            marco.add(playCommand);
+            marco.add(rewindCommand);
+            marco.add(stopCommand);
+            marco.execute();
+优点：更松散的耦合
+      命令模式使得发起命令的对象——客户端，和具体实现命令的对象——接收者对象完全解耦，
+      也就是说发起命令的对象完全不知道具体实现对象是谁，也不知道如何实现。
+
+      更动态的控制
+      命令模式把请求封装起来，可以动态地对它进行参数化、队列化和日志化等操作，从而使得系统更灵活。
+
+      很自然的复合命令
+      命令模式中的命令对象能够很容易地组合成复合命令，也就是宏命令，从而使系统操作更简单，功能更强大。
+
+      更好的扩展性
+      由于发起命令的对象和具体的实现完全解耦，因此扩展新的命令就很容易，只需要实现新的命令对象，
+      然后在装配的时候，把具体的实现对象设置到命令对象中，然后就可以使用这个命令对象，已有的实现完全不用变化。
