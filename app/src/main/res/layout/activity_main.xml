@@ -6,19 +6,19 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="#fff"
-                tools:context="com.example.administrator.myprivateframework.activity.MainActivity">
+                tools:context="com.wonderful.framework.activity.MainActivity">
 
-    <com.example.administrator.myprivateframework.ui.WonderfulCameraPreview
+    <com.wonderful.framework.ui.WonderfulCameraPreview
         android:id="@+id/surfaceView"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
 
-    <com.example.administrator.myprivateframework.ui.LineView
+    <com.wonderful.framework.ui.LineView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="#00000000"/>
 
-    <com.example.administrator.myprivateframework.ui.VerticalTextView
+    <com.wonderful.framework.ui.VerticalTextView
         android:id="@+id/tvMessage"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"

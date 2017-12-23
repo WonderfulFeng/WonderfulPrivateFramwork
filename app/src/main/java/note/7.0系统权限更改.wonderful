@@ -10,14 +10,14 @@ Android 7.0增加对权限的修改：
     一：不需要额外添加权限
        1.在创建Uri对象时：
           if (Build.VERSION.SDK_INT >= 24) {
-                    imageUri = FileProvider.getUriForFile(this, "com.example.administrator.myprivateframework.fileprovider", file);
+                    imageUri = FileProvider.getUriForFile(this, "com.exampleframenwork.fileprovider", file);
                 } else {
                     imageUri = Uri.fromFile(file);//兼容4.4（包含）以下
                 }
        2.在清单文件中声明FileProvider
               <provider
                         android:name="android.support.v4.content.FileProvider"
-                        android:authorities="com.example.administrator.myprivateframework.fileprovider"
+                        android:authorities="com.exampleframenwork.fileprovider"
                         android:enabled="true"
                         android:exported="false"//该值必须为false
                         android:grantUriPermissions="true">//该值必须为true
