@@ -65,6 +65,11 @@ public class TestActivity extends BaseActivity {
         return R.layout.test;
     }
 
+    @Override
+    protected boolean isImmersionBarEnabled() {
+        return false;
+    }
+
     @OnClick(R.id.btn)
     public void onViewClicked() {
         takePhoto();

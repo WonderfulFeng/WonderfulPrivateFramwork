@@ -1,13 +1,7 @@
 package com.wonderful.framework.base;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.DialogInterface;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
-import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Gravity;
 import android.view.MotionEvent;
@@ -15,25 +9,29 @@ import android.view.View;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
+import com.gyf.barlibrary.ImmersionBar;
 import com.wonderful.framework.R;
 import com.wonderful.framework.app.MyApplication;
-import com.wonderful.framework.entity.User;
 import com.wonderful.framework.utils.WonderfulKeyboardUtils;
+import com.wonderful.framework.utils.WonderfulStringUtils;
 
 import butterknife.ButterKnife;
+import butterknife.Unbinder;
 
 public abstract class BaseActivity extends AppCompatActivity {
     private PopupWindow loadingPopup;
     private TextView tvLoadingText;
-    private OfflineReceiver offlineReceiver;
+    private Unbinder unbinder;
+    protected ImmersionBar immersionBar;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(getActivityLayoutId());
-        ButterKnife.bind(this);
+        unbinder = ButterKnife.bind(this);
         ActivityManage.addActivity(this);
         initLoadingPopup();
+        if (isImmersionBarEnabled()) initImmersionBar();
         initViews();
         obtainData();
         fillWidget();
@@ -45,46 +43,56 @@ public abstract class BaseActivity extends AppCompatActivity {
         });
     }
 
-    public void a() {
+    /**
+     * 子类重写实现扩展设置
+     */
+    protected void initImmersionBar() {
+        immersionBar = ImmersionBar.with(this);
+        immersionBar.init();
     }
 
-
+    /**
+     * 获取布局ID
+     */
     protected abstract int getActivityLayoutId();
 
+    /**
+     * 是否启用沉浸式
+     */
+    protected abstract boolean isImmersionBarEnabled();
+
+    /**
+     * 初始化工作
+     */
     protected abstract void initViews();
 
+    /**
+     * 获取本地或传递的数据数据
+     */
     protected abstract void obtainData();
 
+    /**
+     * 控件填充
+     */
     protected abstract void fillWidget();
 
+    /**
+     * 初始数据加载
+     */
     protected abstract void loadData();
-
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        offlineReceiver = new OfflineReceiver();
-        IntentFilter filter = new IntentFilter();
-        filter.addAction(getPackageName() + ".force_offline");
-        registerReceiver(offlineReceiver, filter);
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (offlineReceiver != null) {
-            unregisterReceiver(offlineReceiver);
-        }
-    }
 
     @Override
     protected void onDestroy() {
-        ActivityManage.removeActivity(this);
-        hideLoadingPopup();
         super.onDestroy();
+        unbinder.unbind();
+        ActivityManage.removeActivity(this);
+        hideLoadingPopup(true);
+        if (immersionBar != null) immersionBar.destroy();
     }
 
-    /********************************************************************/
+    /**
+     * 初始化加载dialog
+     */
     private void initLoadingPopup() {
         View loadingView = getLayoutInflater().inflate(R.layout.pop_loading, null);
         tvLoadingText = (TextView) loadingView.findViewById(R.id.tvLoadingText);
@@ -94,68 +102,45 @@ public abstract class BaseActivity extends AppCompatActivity {
         loadingPopup.setBackgroundDrawable(new ColorDrawable());
     }
 
-    public void displayLoadingPopup() {
+    /**
+     * 显示加载框
+     */
+    public void displayLoadingPopup(String loadingText) {
+        if (!WonderfulStringUtils.isEmpty(loadingText))
+            tvLoadingText.setText(loadingText + "...");
         loadingPopup.showAtLocation(getWindow().getDecorView(), Gravity.BOTTOM, 0, 0);
     }
 
-    public void hideLoadingPopup() {
+    /**
+     * 隐藏加载框
+     * @param isChange
+     */
+    public void hideLoadingPopup(boolean isChange) {
+        if (isChange) tvLoadingText.setText(R.string.loading);
         loadingPopup.dismiss();
-        tvLoadingText.setText("玩命加载中...");
     }
 
-    public void setLoadingText(String loadingText) {
-        tvLoadingText.setText(loadingText + "...");
-    }
-
-    /********************************************************************/
-
-    /********************************************************************/
+    /**
+     * 获取用户token
+     */
     public String getToken() {
-        User user = MyApplication.getApp().getCurrentUser();
-        return user == null ? "" : user.getToken();
+        return MyApplication.getApp().getCurrentUser().getToken();
     }
-    /********************************************************************/
 
-    /********************************************************************/
+    /**
+     * 处理软件盘智能弹出和隐藏
+     */
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
         switch (ev.getAction()) {
             case MotionEvent.ACTION_DOWN:
                 View view = getCurrentFocus();
-                WonderfulKeyboardUtils.hideKeyboard(ev, view, this);
+                WonderfulKeyboardUtils.editKeyboard(ev, view, this);
                 break;
             default:
                 break;
         }
         return super.dispatchTouchEvent(ev);
     }
-    /********************************************************************/
-    /********************************************************************/
-
-    class OfflineReceiver extends BroadcastReceiver {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            AlertDialog.Builder builder = new AlertDialog.Builder(context);
-            builder.setTitle("下线通知")
-                    .setMessage("您的账号在别处登录，您已被迫下线。如非本人操作，则密码可能已泄漏，建议您重新登录后修改密码！")
-                    .setNegativeButton("退出", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-
-                        }
-                    })
-                    .setPositiveButton("重新登录", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-
-                        }
-                    })
-                    .setCancelable(false);
-            builder.create();
-            builder.show();
-        }
-    }
-    /********************************************************************/
-
 
 }

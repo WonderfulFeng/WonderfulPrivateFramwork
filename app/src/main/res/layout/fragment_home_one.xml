@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:gyf="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!--标题-->
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:alpha="0.3"
+        android:background="?attr/colorPrimary">
+
+        <ImageButton
+            android:id="@+id/ibBack"
+            android:layout_width="48dp"
+            android:layout_height="match_parent"
+            android:background="@null"
+            android:scaleType="center"
+            android:src="@mipmap/icon_back"
+            android:visibility="gone"/>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_centerVertical="true"
+            android:layout_marginLeft="16dp"
+            android:text="微信"
+            android:textColor="#fff"
+            android:textSize="18sp"/>
+
+        <ImageButton
+            android:id="@+id/ibMessage"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_alignParentRight="true"
+            android:background="@null"
+            android:src="@mipmap/icon_add"
+            android:visibility="visible"/>
+
+    </RelativeLayout>
+
+    <com.lcodecore.tkrefreshlayout.TwinklingRefreshLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        gyf:tr_head_height="100dp"
+        gyf:tr_wave_height="180dp">
+
+        <com.wonderful.framework.ui.intercept.WonderfulScrollView
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:overScrollMode="never">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+
+            </LinearLayout>
+
+        </com.wonderful.framework.ui.intercept.WonderfulScrollView>
+
+    </com.lcodecore.tkrefreshlayout.TwinklingRefreshLayout>
+
+</FrameLayout>
+
+
+

@@ -43,4 +43,9 @@ public class LoginActivity extends BaseActivity {
     protected int getActivityLayoutId() {
         return R.layout.activity_login;
     }
+
+    @Override
+    protected boolean isImmersionBarEnabled() {
+        return false;
+    }
 }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+          xmlns:tools="http://schemas.android.com/tools"
           package="com.wonderful.framework">
 
     <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
@@ -15,46 +16,55 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/icon_application"
         android:supportsRtl="true"
-        android:theme="@style/AppTheme">
+        android:theme="@style/AppTheme"
+        tools:replace="android:roundIcon">
         <activity
             android:name="com.yalantis.ucrop.UCropActivity"
             android:screenOrientation="portrait"
             android:theme="@style/Theme.AppCompat.Light.NoActionBar"/>
         <!-- 测试Activity -->
-        <activity android:name="com.wonderful.framework.activity.TestActivity">
+        <activity android:name=".activity.TestActivity">
+        </activity>
+        <activity
+            android:name=".activity.OCRActivity"
+            android:configChanges="orientation|screenSize"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="stateAlwaysHidden|adjustResize">
+        </activity>
+        <activity
+            android:name=".activity.common.StartActivity"
+            android:configChanges="orientation|screenSize"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="stateAlwaysHidden|adjustResize">
+        </activity>
+        <activity
+            android:name=".activity.common.LeadActivity"
+            android:configChanges="orientation|screenSize"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="stateAlwaysHidden|adjustResize"/>
+        <activity
+            android:name=".activity.LoginActivity"
+            android:configChanges="orientation|screenSize"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="stateAlwaysHidden|adjustResize"/>
+        <activity
+            android:name=".activity.MyCenterActivity"
+            android:configChanges="orientation|screenSize"
+            android:screenOrientation="portrait"
+            android:windowSoftInputMode="stateAlwaysHidden|adjustResize">
+        </activity>
+        <activity android:name=".activity.CropActivity">
+        </activity>
+        <activity android:name=".activity.main.MainActivity">
+        </activity>
+        <activity android:name=".activity.chat.ChatActivity">
+        </activity>
+        <activity android:name=".activity.page_fra.PagerActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
+
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
-        </activity>
-        <activity
-            android:name="com.wonderful.framework.activity.MainActivity"
-            android:configChanges="orientation|screenSize"
-            android:screenOrientation="portrait"
-            android:windowSoftInputMode="stateAlwaysHidden|adjustResize">
-        </activity>
-        <activity
-            android:name="com.wonderful.framework.activity.StartActivity"
-            android:configChanges="orientation|screenSize"
-            android:screenOrientation="portrait"
-            android:windowSoftInputMode="stateAlwaysHidden|adjustResize"/>
-        <activity
-            android:name="com.wonderful.framework.activity.LeadActivity"
-            android:configChanges="orientation|screenSize"
-            android:screenOrientation="portrait"
-            android:windowSoftInputMode="stateAlwaysHidden|adjustResize"/>
-        <activity
-            android:name="com.wonderful.framework.activity.LoginActivity"
-            android:configChanges="orientation|screenSize"
-            android:screenOrientation="portrait"
-            android:windowSoftInputMode="stateAlwaysHidden|adjustResize"/>
-        <activity
-            android:name="com.wonderful.framework.activity.MyCenterActivity"
-            android:configChanges="orientation|screenSize"
-            android:screenOrientation="portrait"
-            android:windowSoftInputMode="stateAlwaysHidden|adjustResize">
-        </activity>
-        <activity android:name="com.wonderful.framework.activity.CropActivity">
         </activity>
     </application>
 

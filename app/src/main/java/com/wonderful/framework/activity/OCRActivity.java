@@ -18,7 +18,7 @@ import com.wonderful.framework.utils.WonderfulToastUtils;
 import butterknife.BindView;
 import me.pqpo.smartcropperlib.view.CropImageView;
 
-public class MainActivity extends BaseActivity {
+public class OCRActivity extends BaseActivity {
 
     public static final int GO_TO_SETTING = 0;
     public static final int PERMISSION_HEADER_CAMERA = 1;
@@ -36,7 +36,7 @@ public class MainActivity extends BaseActivity {
 
 
     public static void actionStart(Context context) {
-        Intent intent = new Intent(context, MainActivity.class);
+        Intent intent = new Intent(context, OCRActivity.class);
         context.startActivity(intent);
     }
 
@@ -93,7 +93,12 @@ public class MainActivity extends BaseActivity {
 
     @Override
     protected int getActivityLayoutId() {
-        return R.layout.activity_main;
+        return R.layout.activity_ocr;
+    }
+
+    @Override
+    protected boolean isImmersionBarEnabled() {
+        return false;
     }
 
     private boolean checkCameraHardware(Context context) {

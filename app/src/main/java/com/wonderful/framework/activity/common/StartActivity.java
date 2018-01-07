@@ -1,13 +1,15 @@
-package com.wonderful.framework.activity;
+package com.wonderful.framework.activity.common;
 
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 
-import com.wonderful.framework.R;
-import com.wonderful.framework.instance.SharedPreferenceInstance;
 import com.gyf.barlibrary.ImmersionBar;
+import com.wonderful.framework.R;
+import com.wonderful.framework.activity.LoginActivity;
+import com.wonderful.framework.activity.main.MainActivity;
+import com.wonderful.framework.app.MyApplication;
+import com.wonderful.framework.instance.SharedPreferenceInstance;
+import com.wonderful.framework.utils.WonderfulStringUtils;
 
 import java.util.Timer;
 import java.util.TimerTask;
@@ -16,12 +18,6 @@ public class StartActivity extends AppCompatActivity {
 
     private Timer timer;
     int n = 3;
-    private Handler handler = new Handler() {
-        @Override
-        public void handleMessage(Message msg) {
-            super.handleMessage(msg);
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,17 +32,17 @@ public class StartActivity extends AppCompatActivity {
                     timer.cancel();
                     timer = null;
                     ////TODO 不需要登录即可进入主界面的应用
-                    if (SharedPreferenceInstance.getInstance().getIsFirstUse())
-                        LeadActivity.actionStart(StartActivity.this);
-                    else
-                        MainActivity.actionStart(StartActivity.this);
-                    ////TODO 必须要登录才能进入程序主界面
 //                    if (SharedPreferenceInstance.getInstance().getIsFirstUse())
 //                        LeadActivity.actionStart(StartActivity.this);
-//                    else if (!WonderfulStringUtils.isEmpty(MyApplication.getApp().getCurrentUser().getToken())) //没有过期
-//                        MainActivity.actionStart(StartActivity.this);
 //                    else
-//                        LoginActivity.actionStart(StartActivity.this);
+//                        OCRActivity.actionStart(StartActivity.this);
+                    ////TODO 必须要登录才能进入程序主界面
+                    if (SharedPreferenceInstance.getInstance().getIsFirstUse())
+                        LeadActivity.actionStart(StartActivity.this);
+                    else if (!WonderfulStringUtils.isEmpty(MyApplication.getApp().getCurrentUser().getToken())) //没有过期
+                        MainActivity.actionStart(StartActivity.this);
+                    else
+                        LoginActivity.actionStart(StartActivity.this);
                     finish();
                 }
                 n--;

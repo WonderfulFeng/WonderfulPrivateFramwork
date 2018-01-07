@@ -15,12 +15,8 @@ import android.widget.EditText;
 public class WonderfulKeyboardUtils {
     /**
      * 根据传入控件的坐标和用户的焦点坐标，判断是否隐藏键盘，如果点击的位置在控件内，则不隐藏键盘
-     *
-     * @param view  控件view
-     * @param event 焦点位置
-     * @return 是否隐藏
      */
-    public static void hideKeyboard(MotionEvent event, View view, Activity activity) {
+    public static void editKeyboard(MotionEvent event, View view, Activity activity) {
         try {
             if (view != null && view instanceof EditText) {
                 int[] location = {0, 0};
@@ -40,4 +36,24 @@ public class WonderfulKeyboardUtils {
             e.printStackTrace();
         }
     }
+
+    /**
+     * 隐藏软件盘
+     */
+    public static void hideSoftInput(Activity activity) {
+        InputMethodManager imm = (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) imm.hideSoftInputFromWindow(activity.getCurrentFocus().getWindowToken(), 0);
+    }
+
+    /**
+     * 显示软件盘
+     */
+    public static void showSoftInput(Activity activity) {
+        InputMethodManager imm = (InputMethodManager) activity.getSystemService(Context.INPUT_METHOD_SERVICE);
+        if (imm != null) {
+            activity.getCurrentFocus().requestFocus();
+            imm.showSoftInput(activity.getCurrentFocus(), 0);
+        }
+    }
+
 }

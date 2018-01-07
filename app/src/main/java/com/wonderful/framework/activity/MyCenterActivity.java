@@ -90,6 +90,11 @@ public class MyCenterActivity extends BaseActivity {
     }
 
     @Override
+    protected boolean isImmersionBarEnabled() {
+        return false;
+    }
+
+    @Override
     protected void initViews() {
         ivHeader.setOnClickListener(new View.OnClickListener() {
             @Override

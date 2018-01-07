@@ -1,4 +1,4 @@
-package com.wonderful.framework.activity;
+package com.wonderful.framework.activity.common;
 
 import android.content.Context;
 import android.content.Intent;
@@ -11,6 +11,7 @@ import android.widget.TextView;
 
 import com.gyf.barlibrary.ImmersionBar;
 import com.wonderful.framework.R;
+import com.wonderful.framework.activity.main.MainActivity;
 import com.wonderful.framework.base.BaseActivity;
 import com.wonderful.framework.instance.SharedPreferenceInstance;
 import com.wonderful.framework.utils.WonderfulLogUtils;
@@ -49,6 +50,11 @@ public class LeadActivity extends BaseActivity {
     @Override
     protected int getActivityLayoutId() {
         return R.layout.activity_lead;
+    }
+
+    @Override
+    protected boolean isImmersionBarEnabled() {
+        return false;
     }
 
     int lastPos;
@@ -112,10 +118,10 @@ public class LeadActivity extends BaseActivity {
     private void intoApp() {
         SharedPreferenceInstance.getInstance().saveIsFirstUse(false);
         //TODO 不需要登录即可到主页面的APP
-        com.wonderful.framework.activity.MainActivity.actionStart(LeadActivity.this);
+        MainActivity.actionStart(LeadActivity.this);
         //TODO 需要登录才能进入主页的APP
 //        if (!WonderfulStringUtils.isEmpty(MyApplication.getApp().getCurrentUser().getToken())) //没有过期
-//            MainActivity.actionStart(LeadActivity.this);
+//            OCRActivity.actionStart(LeadActivity.this);
 //        else
 //            LoginActivity.actionStart(LeadActivity.this);
         finish();
