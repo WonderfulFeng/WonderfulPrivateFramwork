@@ -1,16 +1,61 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:gyf="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
+    <com.lcodecore.tkrefreshlayout.TwinklingRefreshLayout
+        android:id="@+id/refreshLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        gyf:tr_head_height="100dp"
+        gyf:tr_wave_height="180dp">
+
+        <com.wonderful.framework.ui.intercept.WonderfulScrollView
+            android:id="@+id/scrollView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:fillViewport="true"
+            android:overScrollMode="never">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <com.youth.banner.Banner
+                    android:id="@+id/banner"
+                    android:layout_width="match_parent"
+                    android:layout_height="200dp"
+                    app:delay_time="2000"
+                    app:is_auto_play="true"
+                    app:scroll_time="800"
+                    app:title_background="#66666666"
+                    app:title_height="30dp"
+                    app:title_textcolor="@color/colorAccent"/>
+
+                <android.support.v7.widget.RecyclerView
+                    android:id="@+id/rvContent"
+                    android:layout_width="match_parent"
+                    android:layout_height="800dp"
+                    android:background="#668269BA"/>
+
+            </LinearLayout>
+
+        </com.wonderful.framework.ui.intercept.WonderfulScrollView>
+
+    </com.lcodecore.tkrefreshlayout.TwinklingRefreshLayout>
+
     <!--标题-->
     <RelativeLayout
+        android:alpha="0"
+        android:id="@+id/rlTitle"
         android:layout_width="match_parent"
         android:layout_height="48dp"
-        android:alpha="0.3"
-        android:background="?attr/colorPrimary">
+        android:background="@color/colorPrimary">
 
         <ImageButton
             android:id="@+id/ibBack"
@@ -40,30 +85,6 @@
             android:visibility="visible"/>
 
     </RelativeLayout>
-
-    <com.lcodecore.tkrefreshlayout.TwinklingRefreshLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        gyf:tr_head_height="100dp"
-        gyf:tr_wave_height="180dp">
-
-        <com.wonderful.framework.ui.intercept.WonderfulScrollView
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:overScrollMode="never">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical">
-
-
-            </LinearLayout>
-
-        </com.wonderful.framework.ui.intercept.WonderfulScrollView>
-
-    </com.lcodecore.tkrefreshlayout.TwinklingRefreshLayout>
 
 </FrameLayout>
 

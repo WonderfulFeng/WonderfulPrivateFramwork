@@ -50,6 +50,8 @@ public class PagerActivity extends BaseActivity {
     @Override
     protected void initViews() {
         getFragments();
+        viewPager.setOffscreenPageLimit(3);
+        llOne.setSelected(true);
         viewPager.setAdapter(new MyAdapter(getSupportFragmentManager()));
         llOne.setOnClickListener(new View.OnClickListener() {
             @Override

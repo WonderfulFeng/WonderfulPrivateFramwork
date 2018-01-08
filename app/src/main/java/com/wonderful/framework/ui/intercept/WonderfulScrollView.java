@@ -7,11 +7,12 @@ import android.widget.ScrollView;
 
 /**
  * Created by Wonderful on 2017/7/29.
- * 带事件拦截的ScrollView
+ * 带事件拦截的ScrollView 和 滚动监听
  */
 
 public class WonderfulScrollView extends ScrollView {
     private boolean isIntercept = true;
+    private OnScrollChangeListener onScrollChangedListener;
 
     public void setIntercept(boolean intercept) {
         isIntercept = intercept;
@@ -32,5 +33,20 @@ public class WonderfulScrollView extends ScrollView {
     @Override
     public boolean onInterceptTouchEvent(MotionEvent ev) {
         return isIntercept && super.onInterceptTouchEvent(ev);
+    }
+
+    @Override
+    protected void onScrollChanged(int x, int y, int oldx, int oldy) {
+        if (onScrollChangedListener != null) {
+            onScrollChangedListener.onScrollChanged(x, y, oldx, oldy);
+        }
+    }
+
+    public void setOnScrollChangedListener(OnScrollChangeListener onScrollChangedListener) {
+        this.onScrollChangedListener = onScrollChangedListener;
+    }
+
+    public interface OnScrollChangeListener {
+        void onScrollChanged(int x, int y, int oldx, int oldy);
     }
 }

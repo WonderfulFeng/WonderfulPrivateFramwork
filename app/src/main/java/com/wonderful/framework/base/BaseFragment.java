@@ -6,6 +6,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
+import com.gyf.barlibrary.ImmersionBar;
+
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
 
@@ -16,6 +18,7 @@ import butterknife.Unbinder;
 public abstract class BaseFragment extends Fragment {
     protected View rootView;
     Unbinder unbinder;
+    protected ImmersionBar immersionBar;
     /**
      * 是否已经初始化视图
      */
@@ -24,7 +27,7 @@ public abstract class BaseFragment extends Fragment {
     /**
      * 重新显示时是否需要加载数据
      */
-    protected boolean isFirst = true;
+    protected boolean isNeedLoad = true;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -34,7 +37,14 @@ public abstract class BaseFragment extends Fragment {
         initViews();
         obtainData();
         fillWidget();
+        if (isImmersionBarEnabled()) initImmersionBar();
         return rootView;
+    }
+
+    protected void initImmersionBar() {
+        immersionBar = ImmersionBar.with(this);
+        immersionBar.init();
+//        keyboardEnable(true).navigationBarWithKitkatEnable(false)
     }
 
     protected abstract int getLayoutId();
@@ -47,11 +57,12 @@ public abstract class BaseFragment extends Fragment {
 
     protected abstract void loadData();
 
+    protected abstract boolean isImmersionBarEnabled();
+
     @Override
     public void onResume() {
         super.onResume();
     }
-
 
     protected void displayLoadingPopup(String loadingText) {
         if (getActivity() != null) ((BaseActivity) getActivity()).displayLoadingPopup(loadingText);
@@ -71,5 +82,9 @@ public abstract class BaseFragment extends Fragment {
     public void onDestroyView() {
         unbinder.unbind();
         super.onDestroyView();
+    }
+
+    protected void finish() {
+        getActivity().finish();
     }
 }

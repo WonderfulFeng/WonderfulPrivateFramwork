@@ -28,6 +28,7 @@ public abstract class BaseLazyFragment extends BaseFragment {
 
     private void tryToLoadData() {
         if (!isInit) return;
+        if (!isNeedLoad) return;
         if (getUserVisibleHint()) {
             loadData();
             isLoad = true;
@@ -48,4 +49,6 @@ public abstract class BaseLazyFragment extends BaseFragment {
      */
     protected void stopLoad() {
     }
+
+
 }
