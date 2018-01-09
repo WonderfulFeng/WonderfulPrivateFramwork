@@ -1,15 +1,13 @@
-package com.wonderful.framework.activity.page_fra;
+package com.wonderful.framework.activity.trans_fra;
 
 import android.support.v7.widget.RecyclerView;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 
-import com.gyf.barlibrary.OnKeyboardListener;
 import com.lcodecore.tkrefreshlayout.TwinklingRefreshLayout;
 import com.wonderful.framework.R;
-import com.wonderful.framework.base.BaseLazyFragment;
+import com.wonderful.framework.base.BaseTransFragment;
 import com.wonderful.framework.ui.intercept.WonderfulScrollView;
-import com.wonderful.framework.utils.WonderfulToastUtils;
 
 import butterknife.BindView;
 
@@ -17,7 +15,7 @@ import butterknife.BindView;
  * Created by Administrator on 2018/1/7.
  */
 
-public class FourFragment extends BaseLazyFragment {
+public class ThreeTransFragment extends BaseTransFragment {
 
     @BindView(R.id.ibBack)
     ImageButton ibBack;
@@ -34,18 +32,12 @@ public class FourFragment extends BaseLazyFragment {
 
     @Override
     protected int getLayoutId() {
-        return R.layout.fragment_home_four;
+        return R.layout.fragment_home_three;
     }
 
     @Override
     protected void initViews() {
-        immersionBar.setOnKeyboardListener(new OnKeyboardListener() {
-            @Override
-            public void onKeyboardChange(boolean isPopup, int keyboardHeight) {
-                //isPopup为true，软键盘弹出，为false，软键盘关闭
-                WonderfulToastUtils.showToast((isPopup ? "软件盘弹出" : "软键盘关闭") + "  高度：" + keyboardHeight);
-            }
-        });
+
     }
 
     @Override
@@ -66,10 +58,13 @@ public class FourFragment extends BaseLazyFragment {
     @Override
     protected void initImmersionBar() {
         super.initImmersionBar();
+        // 原理：如果当前设备支持状态栏字体变色，会设置状态栏字体为黑色，如果当前设备不支持状态栏字体变色，会使当前状态栏加上透明度，否则不执行透明度
+        if (getUserVisibleHint()) immersionBar.statusBarDarkFont(true, 0.2f).init();
         if (!isSetTitle) {
             immersionBar.setTitleBar(getActivity(), llTitle);
             isSetTitle = true;
         }
     }
+
 
 }

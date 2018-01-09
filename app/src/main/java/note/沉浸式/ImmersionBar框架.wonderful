@@ -70,10 +70,51 @@ ImmersionBar:
      immersionBar.titleBar(R.id.rlTitle)//为标题栏设置渐变的shape背景即可
                  .navigationBarColor(R.color.bt2)
                  .init();
-    6.
+    6.ViewPager + fragment 中的沉浸式： （包含懒加载）
+        顶级BaseFragment的OnCreateView中：
+            if (isImmersionBarEnabled()) initImmersionBar();
+            //具体方法
+            protected void initImmersionBar() {
+                immersionBar = ImmersionBar.with(this);
+                immersionBar.keyboardEnable(true, WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE).init();
+            }
+        BaseLazyFragment的setUserVisibleHint中：
+            if (!isInit) return;
+            if (!isNeedLoad) return;
+            if (getUserVisibleHint()) {
+                loadData();
+                isLoad = true;
+                if (isImmersionBarEnabled()) initImmersionBar();
+            } else {
+                if (isLoad) stopLoad();
+            }
 
-
-
-
-
+        a.顶部是banner图、纯色、图片标题栏的fragment，关键代码：(重写initImmersionBar)
+            @Override
+            protected void initImmersionBar() {
+                super.initImmersionBar();
+                if (!isSetTitle) {
+                    immersionBar.setTitleBar(getActivity(), llTitle);
+                    isSetTitle = true;
+                }
+            }
+        b.顶部是白色标题栏的fragment，关键代码：
+            @Override
+            protected void initImmersionBar() {
+                super.initImmersionBar();
+                // 原理：如果当前设备支持状态栏字体变色，会设置状态栏字体为黑色，如果当前设备不支持状态栏字体变色，会使当前状态栏加上透明度，否则不执行透明度
+                if (getUserVisibleHint()) immersionBar.statusBarDarkFont(true, 0.2f).init();
+                if (!isSetTitle) {
+                    immersionBar.setTitleBar(getActivity(), llTitle);
+                    isSetTitle = true;
+                }
+            }
+        c.监听软键盘的弹出与关闭
+            immersionBar.setOnKeyboardListener(new OnKeyboardListener() {
+                @Override
+                public void onKeyboardChange(boolean isPopup, int keyboardHeight) {
+                    //isPopup为true，软键盘弹出，为false，软键盘关闭
+                    WonderfulToastUtils.showToast((isPopup ? "软件盘弹出" : "软键盘关闭") + "  高度：" + keyboardHeight);
+                }
+            });
 

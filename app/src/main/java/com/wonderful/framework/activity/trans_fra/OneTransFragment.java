@@ -1,4 +1,4 @@
-package com.wonderful.framework.activity.page_fra;
+package com.wonderful.framework.activity.trans_fra;
 
 import android.os.Handler;
 import android.support.v4.content.ContextCompat;
@@ -13,7 +13,7 @@ import com.lcodecore.tkrefreshlayout.footer.BallPulseView;
 import com.lcodecore.tkrefreshlayout.header.SinaRefreshView;
 import com.wonderful.framework.R;
 import com.wonderful.framework.adapter.BannerImageLoader;
-import com.wonderful.framework.base.BaseLazyFragment;
+import com.wonderful.framework.base.BaseTransFragment;
 import com.wonderful.framework.ui.intercept.WonderfulScrollView;
 import com.wonderful.framework.utils.WonderfulToastUtils;
 import com.youth.banner.Banner;
@@ -29,7 +29,7 @@ import butterknife.BindView;
  * Created by Administrator on 2018/1/7.
  */
 
-public class OneFragment extends BaseLazyFragment {
+public class OneTransFragment extends BaseTransFragment {
     @BindView(R.id.ibBack)
     ImageButton ibBack;
     @BindView(R.id.ibMessage)

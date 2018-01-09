@@ -1,7 +1,7 @@
-TwinklingRefreshLayout
+TwinklingRefreshLayout 下拉刷新上拉加载
 Github：https://github.com/lcodecorex/TwinklingRefreshLayout
 1.简介
-TwinklingRefreshLayout延伸了Google的SwipeRefreshLayout的思想,不在列表控件上动刀,而是使用一个ViewGroup来包含列表控件,以保持其较低的耦合性和较高的通用性。其主要特性有：
+    TwinklingRefreshLayout延伸了Google的SwipeRefreshLayout的思想,不在列表控件上动刀,而是使用一个ViewGroup来包含列表控件,以保持其较低的耦合性和较高的通用性。其主要特性有：
     支持RecyclerView、ScrollView、AbsListView系列(ListView、GridView)、WebView以及其它可以获取到scrollY的控件
     支持加载更多
     默认支持 越界回弹，随手势速度有不同的效果
@@ -9,17 +9,21 @@ TwinklingRefreshLayout延伸了Google的SwipeRefreshLayout的思想,不在列表
     setOnRefreshListener中拥有大量可以回调的方法
     将Header和Footer抽象成了接口,并回调了滑动过程中的系数,方便实现个性化的Header和Footer
     支持NestedScroll,嵌套CoordinatorLayout
-目前已经支持了所有的View，比如是一个FrameLayout，LinearLayout,AnyView。2.画布的对象的创建与获取
+    目前已经支持了所有的View，比如是一个FrameLayout，LinearLayout,AnyView。2.画布的对象的创建与获取
 2.添加依赖
-compile 'com.lcodecorex:tkrefreshlayout:1.0.7'
+    compile 'com.lcodecorex:tkrefreshlayout:1.0.7'
 3.XML布局
- xmlns:gyf="http://schemas.android.com/tools"
+    xmlns:gyf="http://schemas.android.com/tools"
+    gyf:tr_head_height="100dp"
+    gyf:tr_wave_height="180dp"
 Android系统为了跟iOS不一样，当界面OverScroll的时候会显示一个阴影。为了达到更好的显示效果，最好禁用系统的overScroll，如上给RecyclerView添加android:overScrollMode="never"
-4. .在Activity或者Fragment中配置
-TwinklingRefreshLayout不会自动结束刷新或者加载更多，需要手动控制
-
-使用finishRefreshing()方法结束刷新，finishLoadmore()方法结束加载更多。此处OnRefreshListener还有其它方法，可以选择需要的来重写。
-如果你想进入到界面的时候主动调用下刷新，可以调用startRefresh()/startLoadmore()方法。
+4. 在Activity或者Fragment中配置
+    TwinklingRefreshLayout不会自动结束刷新或者加载更多，需要手动控制
+    refreshLayout.finishRefreshing();
+    refreshLayout.finishLoadmore();
+    setEnableRefresh、setEnableLoadmore 灵活的设置是否禁用上下拉。
+    使用finishRefreshing()方法结束刷新，finishLoadmore()方法结束加载更多。此处OnRefreshListener还有其它方法，可以选择需要的来重写。
+    如果你想进入到界面的时候主动调用下刷新，可以调用startRefresh()/startLoadmore()方法。
 5.内部封装的方法
     setWaveHeight
     setMaxHeadHeight 设置头部可拉伸的最大高度。
@@ -37,9 +41,9 @@ TwinklingRefreshLayout不会自动结束刷新或者加载更多，需要手动�
     setFloatRefresh(boolean) 支持切换到像SwipeRefreshLayout一样的悬浮刷新模式了。
     setTargetView(View view)  设置滚动事件的作用对象。
 
-setDefaultHeader、setDefaultFooter 现在已经提供了设置默认的Header、Footer的static方法，可在Application或者一个Activity中这样设置：
-TwinklingRefreshLayout.setDefaultHeader(SinaRefreshView.class.getName());
-TwinklingRefreshLayout.setDefaultFooter(BallPulseView.class.getName());
+    setDefaultHeader、setDefaultFooter 现在已经提供了设置默认的Header、Footer的static方法，可在Application或者一个Activity中这样设置：
+    TwinklingRefreshLayout.setDefaultHeader(SinaRefreshView.class.getName());
+    TwinklingRefreshLayout.setDefaultFooter(BallPulseView.class.getName());
 6.拓展属性
     tr_max_head_height 头部拉伸允许的最大高度
     tr_head_height 头部高度
@@ -58,9 +62,9 @@ TwinklingRefreshLayout.setDefaultFooter(BallPulseView.class.getName());
     tr_showRefreshingWhenOverScroll 越界时直接显示正在刷新中的头部
     tr_showLoadingWhenOverScroll 越界时直接显示正在加载更多中的底部
 7.其他说明
-1.默认支持越界回弹，并可以随手势越界不同的高度
+    1.默认支持越界回弹，并可以随手势越界不同的高度
 	这一点很多类似SwipeRefreshLayout的刷新控件都没有做到(包括SwipeRefreshLayout),因为没有拦截下来的时间会传递给列表控件，而列表控件的滚动状态很难获取。解决方案就是给列表控件设置了OnTouchListener并把事件交给GestureDetector处理,然后在列表控件的OnScrollListener中监听View是否滚动到了顶部(没有OnScrollListener的则采用延时监听策略)。
-2.setOnRefreshListener大量可以回调的方法
+    2.setOnRefreshListener大量可以回调的方法
     onPullingDown(TwinklingRefreshLayout refreshLayout, float fraction) 正在下拉的过程
     onPullingUp(TwinklingRefreshLayout refreshLayout, float fraction) 正在上拉的过程
     onPullDownReleasing(TwinklingRefreshLayout refreshLayout, float fraction) 下拉释放过程
@@ -69,12 +73,81 @@ TwinklingRefreshLayout.setDefaultFooter(BallPulseView.class.getName());
     onLoadMore(TwinklingRefreshLayout refreshLayout) 正在加载更多
 	其中fraction表示当前下拉的距离与Header高度的比值(或者当前上拉距离与Footer高度的比值)。
 3.Header和Footer
-
-
-8.实现个性化的Header和Footer
+    public interface IHeaderView {
+        View getView();//用于在 TwinklingRefreshLayout 中获取到实际的 Header,因此不能返回 null。
+        void onPullingDown(float fraction,float maxHeadHeight,float headHeight);
+        void onPullReleasing(float fraction,float maxHeadHeight,float headHeight);
+        void startAnim(float maxHeadHeight,float headHeight);
+    }
+8.实现个性化的Header和Footer(带箭头的旋转的下拉刷新)
 相关接口分别为IHeaderView和IBottomView,代码如下:
+    1.首先定义 SinaRefreshHeader 继承自 FrameLayout 并实现 IHeaderView 方法
+    2.getView()方法中返回 this
+    3.在 onAttachedToWindow()或者构造函数方法中获取一下需要用到的布局
+    @Override
+        protected void onAttachedToWindow() {
+            super.onAttachedToWindow();
+            if (rootView == null) {
+                rootView = View.inflate(getContext(), R.layout.view_sinaheader, null);
+                refreshArrow = (ImageView) rootView.findViewById(R.id.iv_arrow);
+                refreshTextView = (TextView) rootView.findViewById(R.id.tv);
+                loadingView = (ImageView) rootView.findViewById(R.id.iv_loading);
+                addView(rootView);
+            }
+        }
+    4.实现其它方法
+        @Override
+        public void onPullingDown(float fraction, float maxHeadHeight, float headHeight) {
+            if (fraction < 1f) refreshTextView.setText(pullDownStr);
+            if (fraction > 1f) refreshTextView.setText(releaseRefreshStr);
+            refreshArrow.setRotation(fraction * headHeight / maxHeadHeight * 180);
+        }
+        @Override
+        public void onPullReleasing(float fraction, float maxHeadHeight, float headHeight) {
+            if (fraction < 1f) {
+                refreshTextView.setText(pullDownStr);
+                refreshArrow.setRotation(fraction * headHeight / maxHeadHeight * 180);
+                if (refreshArrow.getVisibility() == GONE) {
+                    refreshArrow.setVisibility(VISIBLE);
+                    loadingView.setVisibility(GONE);
+                }
+            }
+        }
+        @Override
+        public void startAnim(float maxHeadHeight, float headHeight) {
+            refreshTextView.setText(refreshingStr);
+            refreshArrow.setVisibility(GONE);
+            loadingView.setVisibility(VISIBLE);
+        }
 
-其中getView()方法用于在TwinklingRefreshLayout中获取到实际的Header,因此不能返回null。
+    5.布局文件
+    <?xml version="1.0" encoding="utf-8"?>
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:orientation="horizontal" android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center">
+        <ImageView
+            android:id="@+id/iv_arrow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/ic_arrow"/>
+
+        <ImageView
+            android:id="@+id/iv_loading"
+            android:visibility="gone"
+            android:layout_width="34dp"
+            android:layout_height="34dp"
+            android:src="@drawable/anim_loading_view"/>
+
+        <TextView
+            android:id="@+id/tv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="16dp"
+            android:textSize="16sp"
+            android:text="下拉刷新"/>
+    </LinearLayout>
+    具体代码可参照源码。footer 和 header包下
 
 
 

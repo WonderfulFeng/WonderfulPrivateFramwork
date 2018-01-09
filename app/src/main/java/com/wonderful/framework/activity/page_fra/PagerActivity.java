@@ -9,6 +9,7 @@ import android.widget.LinearLayout;
 
 import com.wonderful.framework.R;
 import com.wonderful.framework.base.BaseActivity;
+import com.wonderful.framework.listener.ViewPagerPageChangeListener;
 import com.wonderful.framework.ui.intercept.WonderfulViewPager;
 
 import java.util.ArrayList;
@@ -53,6 +54,12 @@ public class PagerActivity extends BaseActivity {
         viewPager.setOffscreenPageLimit(3);
         llOne.setSelected(true);
         viewPager.setAdapter(new MyAdapter(getSupportFragmentManager()));
+        viewPager.addOnPageChangeListener(new ViewPagerPageChangeListener() {
+            @Override
+            public void onPageSelected(int position) {
+                changeTab(position);
+            }
+        });
         llOne.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -77,6 +84,23 @@ public class PagerActivity extends BaseActivity {
                 selecte(v, 3);
             }
         });
+    }
+
+    private void changeTab(int position) {
+        switch (position) {
+            case 0:
+                selecte(llOne, position);
+                break;
+            case 1:
+                selecte(llTwo, position);
+                break;
+            case 2:
+                selecte(llThree, position);
+                break;
+            case 3:
+                selecte(llFour, position);
+                break;
+        }
     }
 
     private void selecte(View v, int page) {

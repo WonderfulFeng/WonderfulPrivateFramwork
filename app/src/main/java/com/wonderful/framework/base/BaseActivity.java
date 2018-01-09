@@ -48,7 +48,7 @@ public abstract class BaseActivity extends AppCompatActivity {
      */
     protected void initImmersionBar() {
         immersionBar = ImmersionBar.with(this);
-        immersionBar.init();
+        immersionBar.keyboardEnable(true).init();
     }
 
     /**
@@ -59,7 +59,9 @@ public abstract class BaseActivity extends AppCompatActivity {
     /**
      * 是否启用沉浸式
      */
-    protected abstract boolean isImmersionBarEnabled();
+    protected boolean isImmersionBarEnabled() {
+        return true;
+    }
 
     /**
      * 初始化工作
@@ -113,6 +115,7 @@ public abstract class BaseActivity extends AppCompatActivity {
 
     /**
      * 隐藏加载框
+     *
      * @param isChange
      */
     public void hideLoadingPopup(boolean isChange) {

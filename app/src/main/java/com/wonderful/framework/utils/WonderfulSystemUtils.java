@@ -17,6 +17,7 @@ import java.util.Set;
  */
 
 public class WonderfulSystemUtils {
+
     public static final String SYS_EMUI = "sys_emui";
     public static final String SYS_MIUI = "sys_miui";
     public static final String SYS_FLYME = "sys_flyme";

@@ -61,6 +61,8 @@
         <activity android:name=".activity.chat.ChatActivity">
         </activity>
         <activity android:name=".activity.page_fra.PagerActivity">
+        </activity>
+        <activity android:name=".activity.trans_fra.TransActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 

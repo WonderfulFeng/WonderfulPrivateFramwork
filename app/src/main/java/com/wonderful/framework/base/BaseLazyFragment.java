@@ -7,7 +7,6 @@ import android.view.View;
 /**
  * Created by Administrator on 2018/1/7.
  */
-
 public abstract class BaseLazyFragment extends BaseFragment {
     /**
      * 是否正在加载数据
@@ -32,6 +31,7 @@ public abstract class BaseLazyFragment extends BaseFragment {
         if (getUserVisibleHint()) {
             loadData();
             isLoad = true;
+            if (isImmersionBarEnabled()) initImmersionBar();
         } else {
             if (isLoad) stopLoad();
         }
@@ -49,6 +49,5 @@ public abstract class BaseLazyFragment extends BaseFragment {
      */
     protected void stopLoad() {
     }
-
 
 }

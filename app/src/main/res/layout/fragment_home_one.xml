@@ -11,7 +11,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        gyf:tr_head_height="100dp"
+        gyf:tr_head_height="70dp"
         gyf:tr_wave_height="180dp">
 
         <com.wonderful.framework.ui.intercept.WonderfulScrollView
@@ -50,17 +50,19 @@
     </com.lcodecore.tkrefreshlayout.TwinklingRefreshLayout>
 
     <!--标题-->
-    <RelativeLayout
-        android:alpha="0"
-        android:id="@+id/rlTitle"
+    <LinearLayout
+        android:id="@+id/llTitle"
         android:layout_width="match_parent"
-        android:layout_height="48dp"
-        android:background="@color/colorPrimary">
+        android:layout_height="@dimen/title_bar_height"
+        android:alpha="0"
+        android:background="@color/colorPrimary"
+        android:orientation="horizontal">
 
         <ImageButton
             android:id="@+id/ibBack"
             android:layout_width="48dp"
             android:layout_height="match_parent"
+            android:layout_gravity="center_vertical"
             android:background="@null"
             android:scaleType="center"
             android:src="@mipmap/icon_back"
@@ -70,21 +72,28 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerVertical="true"
+            android:layout_gravity="center_vertical"
             android:layout_marginLeft="16dp"
             android:text="微信"
             android:textColor="#fff"
             android:textSize="18sp"/>
 
+        <View
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"/>
+
         <ImageButton
             android:id="@+id/ibMessage"
             android:layout_width="48dp"
-            android:layout_height="48dp"
+            android:layout_height="match_parent"
             android:layout_alignParentRight="true"
+            android:layout_gravity="center_vertical"
             android:background="@null"
             android:src="@mipmap/icon_add"
             android:visibility="visible"/>
 
-    </RelativeLayout>
+    </LinearLayout>
 
 </FrameLayout>
 

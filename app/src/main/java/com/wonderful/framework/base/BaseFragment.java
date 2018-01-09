@@ -5,6 +5,7 @@ import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 
 import com.gyf.barlibrary.ImmersionBar;
 
@@ -23,28 +24,25 @@ public abstract class BaseFragment extends Fragment {
      * 是否已经初始化视图
      */
     protected boolean isInit = false;
-
     /**
      * 重新显示时是否需要加载数据
      */
     protected boolean isNeedLoad = true;
+    /**
+     * 是否调用过setTitelBar
+     */
+    protected boolean isSetTitle = false;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         rootView = inflater.inflate(getLayoutId(), null);
         unbinder = ButterKnife.bind(this, rootView);
         isInit = true;
+        if (isImmersionBarEnabled()) initImmersionBar();
         initViews();
         obtainData();
         fillWidget();
-        if (isImmersionBarEnabled()) initImmersionBar();
         return rootView;
-    }
-
-    protected void initImmersionBar() {
-        immersionBar = ImmersionBar.with(this);
-        immersionBar.init();
-//        keyboardEnable(true).navigationBarWithKitkatEnable(false)
     }
 
     protected abstract int getLayoutId();
@@ -57,7 +55,14 @@ public abstract class BaseFragment extends Fragment {
 
     protected abstract void loadData();
 
-    protected abstract boolean isImmersionBarEnabled();
+    protected boolean isImmersionBarEnabled() {
+        return true;
+    }
+
+    protected void initImmersionBar() {
+        immersionBar = ImmersionBar.with(this);
+        immersionBar.keyboardEnable(true, WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE).init();
+    }
 
     @Override
     public void onResume() {
@@ -76,7 +81,6 @@ public abstract class BaseFragment extends Fragment {
     public View getView() {
         return rootView;
     }
-
 
     @Override
     public void onDestroyView() {

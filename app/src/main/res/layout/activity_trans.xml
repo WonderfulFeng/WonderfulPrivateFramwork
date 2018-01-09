@@ -6,10 +6,10 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    tools:context="com.wonderful.framework.activity.page_fra.PagerActivity">
+    tools:context="com.wonderful.framework.activity.trans_fra.TransActivity">
 
-    <com.wonderful.framework.ui.intercept.WonderfulViewPager
-        android:id="@+id/viewPager"
+    <FrameLayout
+        android:id="@+id/flContainer"
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"/>
