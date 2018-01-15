@@ -29,7 +29,12 @@ public abstract class BaseLazyFragment extends BaseFragment {
         if (!isInit) return;
         if (!isNeedLoad) return;
         if (getUserVisibleHint()) {
-            loadData();
+            rootView.post(new Runnable() {
+                @Override
+                public void run() {
+                    loadData();
+                }
+            });
             isLoad = true;
             if (isImmersionBarEnabled()) initImmersionBar();
         } else {

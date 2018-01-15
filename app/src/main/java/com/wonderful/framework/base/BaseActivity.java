@@ -6,21 +6,19 @@ import android.support.v7.app.AppCompatActivity;
 import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
+import android.view.WindowManager;
 import android.widget.PopupWindow;
-import android.widget.TextView;
 
 import com.gyf.barlibrary.ImmersionBar;
 import com.wonderful.framework.R;
 import com.wonderful.framework.app.MyApplication;
 import com.wonderful.framework.utils.WonderfulKeyboardUtils;
-import com.wonderful.framework.utils.WonderfulStringUtils;
 
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
 
 public abstract class BaseActivity extends AppCompatActivity {
     private PopupWindow loadingPopup;
-    private TextView tvLoadingText;
     private Unbinder unbinder;
     protected ImmersionBar immersionBar;
 
@@ -48,7 +46,7 @@ public abstract class BaseActivity extends AppCompatActivity {
      */
     protected void initImmersionBar() {
         immersionBar = ImmersionBar.with(this);
-        immersionBar.keyboardEnable(true).init();
+        immersionBar.keyboardEnable(true, WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE).init();
     }
 
     /**
@@ -88,7 +86,7 @@ public abstract class BaseActivity extends AppCompatActivity {
         super.onDestroy();
         unbinder.unbind();
         ActivityManage.removeActivity(this);
-        hideLoadingPopup(true);
+        hideLoadingPopup();
         if (immersionBar != null) immersionBar.destroy();
     }
 
@@ -97,7 +95,6 @@ public abstract class BaseActivity extends AppCompatActivity {
      */
     private void initLoadingPopup() {
         View loadingView = getLayoutInflater().inflate(R.layout.pop_loading, null);
-        tvLoadingText = (TextView) loadingView.findViewById(R.id.tvLoadingText);
         loadingPopup = new PopupWindow(loadingView, MyApplication.getApp().getmWidth(), MyApplication.getApp().getmHeight());
         loadingPopup.setFocusable(true);
         loadingPopup.setClippingEnabled(false);
@@ -107,19 +104,15 @@ public abstract class BaseActivity extends AppCompatActivity {
     /**
      * 显示加载框
      */
-    public void displayLoadingPopup(String loadingText) {
-        if (!WonderfulStringUtils.isEmpty(loadingText))
-            tvLoadingText.setText(loadingText + "...");
-        loadingPopup.showAtLocation(getWindow().getDecorView(), Gravity.BOTTOM, 0, 0);
+    public void displayLoadingPopup() {
+        loadingPopup.showAtLocation(getWindow().getDecorView(), Gravity.CENTER, 0, 0);
     }
 
     /**
      * 隐藏加载框
      *
-     * @param isChange
      */
-    public void hideLoadingPopup(boolean isChange) {
-        if (isChange) tvLoadingText.setText(R.string.loading);
+    public void hideLoadingPopup() {
         loadingPopup.dismiss();
     }
 

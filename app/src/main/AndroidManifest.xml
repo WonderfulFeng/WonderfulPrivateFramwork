@@ -29,8 +29,7 @@
         <activity
             android:name=".activity.OCRActivity"
             android:configChanges="orientation|screenSize"
-            android:screenOrientation="portrait"
-            android:windowSoftInputMode="stateAlwaysHidden|adjustResize">
+            android:screenOrientation="portrait">
         </activity>
         <activity
             android:name=".activity.common.StartActivity"
@@ -59,15 +58,20 @@
         <activity android:name=".activity.main.MainActivity">
         </activity>
         <activity android:name=".activity.chat.ChatActivity">
-        </activity>
-        <activity android:name=".activity.page_fra.PagerActivity">
-        </activity>
-        <activity android:name=".activity.trans_fra.TransActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+        </activity>
+        <activity
+            android:name=".activity.page_fra.PagerActivity"
+            android:configChanges="orientation|screenSize"
+            android:screenOrientation="portrait">
+        </activity>
+        <activity android:name=".activity.trans_fra.TransActivity">
+        </activity>
+        <activity android:name=".activity.login.LoginActivity">
         </activity>
     </application>
 

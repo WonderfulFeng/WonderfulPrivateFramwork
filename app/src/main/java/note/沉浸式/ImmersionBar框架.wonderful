@@ -117,4 +117,4 @@ ImmersionBar:
                     WonderfulToastUtils.showToast((isPopup ? "软件盘弹出" : "软键盘关闭") + "  高度：" + keyboardHeight);
                 }
             });
-
+        7.跟多使用详见github项目。

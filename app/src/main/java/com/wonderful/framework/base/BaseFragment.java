@@ -69,12 +69,12 @@ public abstract class BaseFragment extends Fragment {
         super.onResume();
     }
 
-    protected void displayLoadingPopup(String loadingText) {
-        if (getActivity() != null) ((BaseActivity) getActivity()).displayLoadingPopup(loadingText);
+    protected void displayLoadingPopup() {
+        if (getActivity() != null) ((BaseActivity) getActivity()).displayLoadingPopup();
     }
 
-    protected void hideLoadingPopup(boolean isChange) {
-        if (getActivity() != null) ((BaseActivity) getActivity()).hideLoadingPopup(isChange);
+    protected void hideLoadingPopup( ) {
+        if (getActivity() != null) ((BaseActivity) getActivity()).hideLoadingPopup();
     }
 
     @Override

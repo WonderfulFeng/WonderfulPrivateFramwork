@@ -158,7 +158,6 @@ public class OneTransFragment extends BaseTransFragment {
 
     @Override
     protected void loadData() {
-
     }
 
     @Override

@@ -5,15 +5,8 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    tools:context="com.wonderful.framework.activity.chat.ChatActivity">
+    tools:context="com.wonderful.framework.activity.login.LoginActivity">
 
-
-    <Button
-        android:layout_gravity="center_horizontal"
-        android:id="@+id/bt"
-        android:text="点我"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"/>
+    
 
 </LinearLayout>
