@@ -7,26 +7,10 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     tools:context="com.wonderful.framework.activity.main.MainActivity">
-
-    <LinearLayout
+    
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/rvMenu"
         android:layout_width="match_parent"
-        android:layout_height="60dp">
+        android:layout_height="match_parent"/>
 
-        <android.support.v7.widget.CardView
-            android:layout_width="0dp"
-            android:layout_height="match_parent"
-            android:layout_weight="1"
-            app:cardCornerRadius="4dp"
-            app:cardElevation="4dp"
-            app:cardPreventCornerOverlap="true"
-            app:cardUseCompatPadding="true">
-
-            <TextView
-                android:id="@+id/tvTest"
-                style="@style/wmhm"
-                android:text="测试Module"/>
-
-        </android.support.v7.widget.CardView>
-
-    </LinearLayout>
 </LinearLayout>
